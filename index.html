@@ -552,8 +552,20 @@
 
                 <div class="form-group">
                     <label class="form-label">Your Current Content <span style="color:#ef4444;">*</span></label>
-                    <textarea class="form-textarea" id="currentContent" style="min-height:180px;" placeholder="Paste your existing content here..."></textarea>
+                    <textarea class="form-textarea" id="currentContent" style="min-height:180px;" placeholder="Paste your existing content here..." oninput="updateWordCountInfo()"></textarea>
                 </div>
+
+                <!-- Word Count Match Toggle -->
+                <div style="background:rgba(251,113,133,0.07);border:1px solid rgba(251,113,133,0.25);border-radius:10px;padding:14px 18px;margin-bottom:20px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#fda4af;">
+                            <input type="checkbox" id="matchWordCount" checked style="width:15px;height:15px;accent-color:#fb7185;">
+                            Match original word count per section — protects card/grid UI layout
+                        </label>
+                    </div>
+                    <div id="wordCountInfo" style="font-size:12px;color:#94a3b8;line-height:1.7;margin-top:4px;"></div>
+                </div>
+
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="rewriteContent()"><span>✨</span> Rewrite</button>
                     <button class="btn btn-secondary" onclick="clearRewrite()">Clear</button>
@@ -879,7 +891,7 @@
 
         showLoading('compareResults', 'Analyzing pages… this takes about 30–45 seconds');
 
-        const prompt = `You are an expert SEO auditor. Analyze the URLs below and return ONLY a raw JSON object — no markdown, no code fences, no explanation, nothing before or after the JSON.
+        const prompt = `You are an expert SEO auditor and content strategist with deep knowledge of Google E-E-A-T, Helpful Content System, and GEO/LLM visibility. Analyze the URLs below and return ONLY a raw JSON object — no markdown, no code fences, no explanation, nothing before or after the JSON.
 
 YOUR URL: ${yourUrl}
 COMPETITOR URLS: ${competitorUrls.join(', ')}
@@ -889,6 +901,14 @@ RULES FOR THE JSON YOU MUST FOLLOW:
 - Do NOT put newlines or unescaped quotes inside any string value — use a space instead of a line break.
 - Keep each string under 200 characters.
 - All score numbers must be integers 0–10.
+
+FOR EACH sectionsToRewrite entry, the suggestedRewrite MUST follow these content quality standards:
+- Be specific and concrete — replace any vague claim with a measurable, outcome-focused version
+- Lead with a benefit or result, not a feature description
+- Use active voice and direct, confident language
+- No filler phrases: no "It is worth noting", "In today's landscape", "We are a leading provider"
+- Include at least one specific number, result, or proof point where possible
+- Sound like an expert talking directly to a potential client — not a generic AI rewrite
 
 Return this exact structure:
 {
@@ -905,7 +925,7 @@ Return this exact structure:
         "priority": "HIGH",
         "whyWeak": "One sentence why this section underperforms vs competitors.",
         "currentText": "Brief description of what the section currently says.",
-        "suggestedRewrite": "The improved version in 2-3 sentences. No quotes inside this string.",
+        "suggestedRewrite": "The improved version in 2-3 sentences. Specific, benefit-led, expert voice. No quotes inside this string.",
         "impact": "One sentence on what fixing this will achieve."
       }
     ]
@@ -956,6 +976,46 @@ Fill in 4 to 5 sectionsToRewrite entries for YOUR URL. Fill in one competitor ob
         try { return JSON.parse(s); } catch (e) {
             throw new Error('JSON parse failed after all fixes: ' + e.message);
         }
+    }
+
+    function countWords(str) {
+        return str.trim().split(/\s+/).filter(Boolean).length;
+    }
+
+    function extractSections(text) {
+        // Split by heading markers (H1-H4 or lines that look like headings)
+        const lines = text.split('\n');
+        const sections = [];
+        let current = { heading: 'Intro / Opening', words: [] };
+        for (const line of lines) {
+            const trimmed = line.trim();
+            const isHeading = /^#{1,4}\s/.test(trimmed) || /^(H[1-4]:|\*\*[A-Z])/i.test(trimmed);
+            if (isHeading && current.words.length > 0) {
+                sections.push({ heading: current.heading, wordCount: countWords(current.words.join(' ')) });
+                current = { heading: trimmed.replace(/^#{1,4}\s|\*\*/g, '').slice(0, 60), words: [] };
+            } else if (isHeading) {
+                current.heading = trimmed.replace(/^#{1,4}\s|\*\*/g, '').slice(0, 60);
+            } else if (trimmed) {
+                current.words.push(trimmed);
+            }
+        }
+        if (current.words.length > 0) sections.push({ heading: current.heading, wordCount: countWords(current.words.join(' ')) });
+        return sections;
+    }
+
+    function updateWordCountInfo() {
+        const content = document.getElementById('currentContent').value;
+        const info = document.getElementById('wordCountInfo');
+        if (!info) return;
+        if (!content.trim()) { info.innerHTML = ''; return; }
+        const total = countWords(content);
+        const sections = extractSections(content);
+        let html = '<span style="color:#60a5fa;font-weight:600;">Total: ' + total + ' words</span>';
+        if (sections.length > 1) {
+            html += ' &nbsp;|&nbsp; ' + sections.length + ' sections detected';
+            html += '<br><span style="color:#64748b;">Sections: ' + sections.map(s => s.heading.slice(0,30) + ' (' + s.wordCount + 'w)').join(' &middot; ') + '</span>';
+        }
+        info.innerHTML = html;
     }
 
     function clearRewrite() {
@@ -1084,90 +1144,177 @@ Fill in 4 to 5 sectionsToRewrite entries for YOUR URL. Fill in one competitor ob
         const pageType = document.getElementById('pageType').value;
         const audience = document.getElementById('rewriteAudience').value.trim();
         const content = document.getElementById('currentContent').value.trim();
+        const matchWordCount = document.getElementById('matchWordCount').checked;
 
         if (!keyword || !content) {
             showError('rewriteResults', 'Please provide a primary keyword and your content to rewrite.');
             return;
         }
 
+        // Build word count map for sections
+        const sections = extractSections(content);
+        const totalWords = countWords(content);
+        let wordCountBlock = '';
+        if (matchWordCount && sections.length > 0) {
+            const sectionList = sections.map(s => '  - "' + s.heading + '": ' + s.wordCount + ' words').join('\n');
+            wordCountBlock = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 0 — WORD COUNT MATCHING (CRITICAL FOR UI/LAYOUT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+The original content is used in a designed webpage with fixed card/grid UI layouts. If sections are longer or shorter than the original, the design BREAKS.
+
+You MUST match the word count of each section within ±10% tolerance.
+
+Total original word count: ${totalWords} words
+Section-by-section word counts to match:
+${sectionList}
+
+For each section: count your words as you write. If you are running long, tighten the language. If you are running short, add a specific detail or proof point. Never pad with filler. Never cut important content — compress it instead.`;
+        }
+
         showLoading('rewriteResults', 'Rewriting with strict page-type structure…');
 
         const pageInfo = PAGE_TYPE_STRUCTURES[pageType] || PAGE_TYPE_STRUCTURES['service'];
 
-        const prompt = `You are a world-class SEO content strategist and editor with 15+ years of experience writing content that ranks #1 on Google and converts readers into customers. You deeply understand Google's E-E-A-T guidelines, search intent, semantic SEO, and what separates content that ranks from content that doesn't.
+        const prompt = `You are a world-class SEO content strategist and editor. You have deep mastery of Google's E-E-A-T framework, Google's Helpful Content System, AI Overview optimisation, and GEO/LLM visibility best practices. You know exactly what separates content that ranks and gets cited by AI from content that doesn't.
 
-Your job: REWRITE the content below to be the single best page on the internet for the primary keyword. Keep the exact same structure as the original — same sections, same headings, same order. Only the words inside each section change.
+Your job: REWRITE the content below to be the single best page on the internet for the primary keyword. Keep the EXACT same structure as the original — same sections, same headings, same order. Only the words inside each section change.
+
+${wordCountBlock}
 
 PRIMARY KEYWORD: "${keyword}"
 SECONDARY / LSI KEYWORDS: ${secondaryKeywords || 'none specified'}
 PAGE TYPE: ${pageInfo.label}
 TARGET AUDIENCE: ${audience || 'general audience'}
 
-===== STRUCTURE RULE (NON-NEGOTIABLE) =====
-Preserve the original content's sections 100% — same headings, same order, same number of sections.
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 1 — STRUCTURE (NON-NEGOTIABLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Preserve every section, heading, and layout from the original 100%.
 Do NOT add, remove, merge, or reorder any section.
 You may sharpen a heading's wording but never change its meaning or intent.
 
-===== HOW A WORLD-CLASS SEO WRITER USES KEYWORDS =====
-Think of keywords the way a great journalist thinks about a story angle — they shape everything naturally, never forced.
-
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 2 — KEYWORD STRATEGY
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 PRIMARY KEYWORD "${keyword}":
-- Opens the page — in the H1 and within the first 100 words, because that signals to Google what the page is about
-- Appears in the most important H2 subheading on the page
-- Used 3–5 times total across the full content — naturally, with varied phrasing where possible (e.g. if keyword is "SEO services Delhi", also use "Delhi SEO", "SEO agency in Delhi" as natural variants)
-- In the meta title and meta description
-- Never stuffed — if a sentence reads awkwardly with the keyword, rewrite the sentence, not the keyword rule
+- Place in the H1, within the first 100 words, in the most important H2, in the meta title, and in the meta description
+- Use 3-5 times total — with natural semantic variations (e.g. if keyword is "SEO services Delhi", also use "Delhi SEO agency", "search engine optimisation in Delhi" as natural variants)
+- Keyword density: aim for 1–1.5%. Never force it — if a sentence reads awkwardly, rewrite the sentence around the keyword, not the other way around
+- Never use the exact same phrase consecutively — space keyword appearances across different sections
 
 SECONDARY / LSI KEYWORDS:
-- Treat these as the vocabulary of the topic — a page about "SEO services" naturally mentions "organic traffic", "search rankings", "on-page optimisation" — use them as an expert would speak
-- Spread across different sections, not clustered in one place
-- Use as H3 subheadings, FAQ questions, or naturally in body paragraphs
-- At least one secondary keyword in the FAQ section as a question angle
-- Never repeat the same secondary keyword more than twice
+- Treat these as the natural vocabulary of an expert discussing this topic — weave them in as an expert would speak, not as a checklist
+- Distribute across different sections — never cluster multiple secondary keywords in one paragraph
+- Use at least one secondary keyword as the basis of a FAQ question
+- Use at least one secondary keyword in a H3 sub-heading or bullet point header
+- Do not repeat the same secondary keyword more than twice in the full content
 
-SEMANTIC RICHNESS:
-- Use related terms, synonyms, and topic vocabulary throughout — this is how Google understands a page covers a topic thoroughly
-- Write as a genuine expert would — using the precise language of the industry
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 3 — E-E-A-T (Experience, Expertise, Authoritativeness, Trust)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Google's Quality Rater Guidelines make Trust the master signal. Apply all four dimensions:
 
-===== WHAT MAKES THE BEST CONTENT =====
-Apply every one of these to every section you rewrite:
+EXPERIENCE — show first-hand evidence:
+- Replace generic claims with specific, dateable, quantified outcomes
+- Use case study language: "Client X achieved Y result in Z timeframe"
+- Reference real scenarios, real tools, real processes — not hypothetical examples
+- Where the original has vague claims ("we have experience"), replace with specific proof ("we have delivered X for Y clients since Z")
 
-1. SPECIFICITY OVER VAGUENESS — replace every vague claim with a specific one
-   Bad: "We have years of experience" 
-   Good: "Our team has delivered SEO results for 300+ clients across 12 industries since 2011"
+EXPERTISE — demonstrate deep subject knowledge:
+- Use precise industry terminology where it genuinely belongs
+- Explain the "why" behind recommendations, not just the "what"
+- Show awareness of trade-offs, limitations, and nuances — generic content never acknowledges these
+- Where the original has feature-level descriptions, upgrade to outcome-and-mechanism explanations
 
-2. BENEFITS OVER FEATURES — tell the reader what they gain, not just what you do
-   Bad: "We do keyword research"
-   Good: "We identify the exact search terms your ideal customers use — so your content reaches people already looking for what you offer"
+AUTHORITATIVENESS — signal credibility:
+- Reference specific numbers, results, metrics, and timeframes as proof points
+- Use comparative framing where appropriate: "versus competitors / alternatives / doing nothing"
+- Social proof language: client counts, industries served, years of operation, measurable results
+- Certifications, partnerships, and awards mentioned where relevant
 
-3. CONFIDENCE WITHOUT HYPE — strong, direct statements. No corporate fluff.
-   Bad: "We are a leading, award-winning, best-in-class provider"
-   Good: "Our clients average a 3.2x increase in organic traffic within 6 months"
+TRUSTWORTHINESS — build confidence:
+- Every claim must be supportable — no overclaiming or empty superlatives
+- Acknowledge what the service does NOT do or is not suited for — honest framing builds trust
+- Avoid misleading or click-bait-style language
+- CTA language should be benefit-clear and low-pressure, not high-pressure or vague
 
-4. EVERY SENTENCE EARNS ITS PLACE — if a sentence doesn't inform, persuade, or build trust, cut it
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 4 — GOOGLE HELPFUL CONTENT SYSTEM COMPLIANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Google's Helpful Content System (HCS) is a site-wide classifier that suppresses content written for search engines rather than humans. Every section you write must pass this test:
 
-5. HUMAN EXPERT VOICE — write like a knowledgeable person talking directly to the reader. Contractions are fine. Short punchy sentences are fine. No "Furthermore", "It is worth noting", "In conclusion"
+- Does this section provide genuine value that the reader could not find identically elsewhere?
+- Does every paragraph add unique information — not padding, not repetition?
+- Would someone reading this feel they got a complete, satisfying answer?
+- Is this written from real subject-matter understanding — not assembled from generic knowledge?
 
-6. SEARCH INTENT SATISFACTION — a reader who lands on this page should feel they got a complete, satisfying answer. No cliffhangers. No "contact us to find out more" as the only answer to a question.
+Apply the "WHO / HOW / WHY" test to every section:
+WHO: Is there a clear, credible voice behind this content?
+HOW: Does it reflect genuine effort, expertise, and original thinking?
+WHY: Is it clearly serving the reader's need — not just targeting a keyword?
 
-7. E-E-A-T SIGNALS — weave in signals of Experience, Expertise, Authority and Trust naturally:
-   - Specific numbers, results, timeframes
-   - Acknowledgement of trade-offs or limitations (builds trust)
-   - Precise industry language (signals expertise)
-   - Social proof language where relevant
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 5 — GEO / LLM VISIBILITY (AI OVERVIEW + AI CHATBOT CITATION)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+44% of AI Overview citations come from the first 30% of a page. Content with sourced statistics is cited up to 40% more often than opinion-only content. Apply these rules throughout:
 
-===== WHAT TO NEVER WRITE =====
-- "We are a leading/top/best-in-class company" (prove it instead)
-- "In today's digital landscape / fast-paced world" (cliché opener)
-- "It is important to note that..." (just say it)
-- "We offer a wide range of services" (list them specifically)
-- Passive voice where active is possible
-- Any sentence that could appear on any competitor's page unchanged
+ANSWER-FIRST ARCHITECTURE:
+- Every major section should open with a 1–2 sentence direct answer before expanding with detail
+- The opening paragraph of the page must state clearly: what this page is about, who it is for, and what the reader will gain
 
-===== ORIGINAL CONTENT TO REWRITE =====
+FACT DENSITY:
+- Include specific numbers, percentages, timeframes, and metrics throughout
+- Attribute statistics: "X% of [audience] [do Y], according to [source/study type]" — even approximate attribution ("industry data shows") is better than no attribution
+- Target: at least 1 concrete data point or specific proof point per major section
+
+CONVERSATIONAL HEADING STRUCTURE:
+- H2s and H3s should mirror the questions real users type — "How does X work?", "Why choose X?", "What does X include?"
+- This structure is what AI Overviews and LLMs extract from
+
+FAQ SECTION:
+- Each FAQ question should mirror a real conversational search query
+- Each answer: 2–4 sentences, direct, and complete — no "contact us to find out" as the only answer
+- At least one FAQ question should use a secondary keyword as the basis
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 6 — CONTENT QUALITY STANDARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPECIFICITY OVER VAGUENESS — replace every vague claim with a concrete one:
+❌ "We have years of experience"  →  ✅ "19+ years and 100,000+ campaigns delivered across India"
+❌ "We offer great results"  →  ✅ "Our clients average a 40% reduction in cost per lead within 90 days"
+❌ "We do keyword research"  →  ✅ "We map every keyword to the specific buying intent it represents — so your content reaches people already deciding to purchase, not just browsing"
+
+BENEFITS OVER FEATURES:
+Every service, process step, or capability should be framed as what it produces for the client — not just what it is.
+
+HUMAN EXPERT VOICE:
+- Write like a knowledgeable person talking directly and confidently to the reader
+- Short, punchy sentences are fine. Contractions are fine.
+- NEVER use: "Furthermore", "It is worth noting that", "In conclusion", "In today's digital landscape", "In today's fast-paced world", "It is important to note", "It goes without saying"
+- NEVER write: "We are a leading / top / best-in-class / award-winning provider" — prove it with specifics instead
+- NEVER write: "We offer a wide range of services" — list them specifically instead
+
+EVERY SENTENCE EARNS ITS PLACE:
+- If a sentence does not inform, persuade, or build trust — cut it
+- No padding. No filler. No restating the same point in different words.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 7 — CONVERSION LAYER
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+- CTA language must state a clear benefit: "Book a Free Strategy Call" > "Contact Us"
+- Trust signals near CTAs: client count, results metrics, or a short testimonial-style line
+- The reader should feel confident taking the next step — not pressured
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+ORIGINAL CONTENT TO REWRITE
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${content}
 
-Rewrite the full content now, section by section, matching the original structure exactly. Every word should be the best possible version. Output the COMPLETE rewritten page — do not stop early, do not truncate, do not summarise the remaining sections. Every single section from the original must appear in the output, fully rewritten. Ready to publish.`;
+Rewrite the full content now, section by section, matching the original structure exactly. Output the COMPLETE rewritten page — do not stop early, do not truncate, do not summarise remaining sections. Every single section from the original must appear in full. The output should be ready to publish.
+
+${matchWordCount ? `FINAL WORD COUNT REMINDER: Each rewritten section MUST match the original section word count within ±10%. The total rewrite must be within ±10% of the original ${totalWords} words. This is a hard constraint — the content lives inside a fixed card/grid UI layout that breaks if text length changes.` : ''}`;
+
 
         try {
             const result = await callClaude(prompt, 8000);
@@ -1273,21 +1420,20 @@ Rewrite the full content now, section by section, matching the original structur
         if (optMultiFormat) sections.push(`## MULTI-FORMAT SUGGESTIONS\nFor each major section, suggest what visual or media format would enhance it: infographic, data chart, video embed, screenshot, pull quote, interactive tool, or image. Provide a one-line brief for each suggestion.`);
         if (optSchema)      sections.push(`## FAQ SCHEMA (JSON-LD)\nProduce a valid JSON-LD FAQ schema for all FAQ Q&As. Wrap in <script type="application/ld+json"> tags. Ensure all special characters in answers are properly escaped.`);
 
-        const prompt = `You are a world-class SEO content strategist. Your task is to produce the richest, most thorough, publish-ready content possible for the brief below, following every Google guideline precisely.
+        const prompt = `You are a world-class SEO content strategist and editor with deep mastery of Google's E-E-A-T framework, Google's Helpful Content System, AI Overview optimisation, and GEO/LLM visibility best practices. Your task: produce the single best piece of content on the internet for this brief. Every word must earn its place.
 
-╔══════════════════════════════════════╗
-  CONTENT BRIEF
-╚══════════════════════════════════════╝
-
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTENT BRIEF
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 Primary keyword:    "${primaryKeyword}"
-Secondary / LSI:    ${secondaryKeywords || 'derive naturally — use the full semantic field around this topic'}
+Secondary / LSI:    ${secondaryKeywords || 'derive naturally — use the full semantic vocabulary around this topic'}
 Page type:          ${pageGuides[pageType] || pageType}
 Search intent:      ${intentGuide[searchIntent]}
 Target audience:    ${audience}
 Audience level:     ${levelGuide[audienceLevel]}
 Tone:               ${toneGuide[tone]}
 Target length:      ${lengthGuide[length]}
-Brand context:      ${brandInfo || 'not provided — write with generic but credible authority'}
+Brand context:      ${brandInfo || 'not provided — write with credible, expert authority'}
 
 ${internalLinksBlock}
 ${ymylBlock}
@@ -1295,52 +1441,136 @@ ${clusterBlock}
 ${origBlock}
 ${freshnessBlock}
 
-╔══════════════════════════════════════╗
-  GOOGLE PEOPLE-FIRST RULES — ALL MANDATORY
-╚══════════════════════════════════════╝
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 1 — E-E-A-T (Google's Quality Standard)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Google's E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) is the framework that determines whether content deserves to rank. Apply all four dimensions throughout:
 
-1. Write for the reader's actual goal — not to game search rankings.
-2. Fully satisfy search intent: the reader must not need to look elsewhere after reading this.
-3. Demonstrate real experience: embed specific examples, concrete numbers, and practical observations that only someone with hands-on knowledge would know.
-4. No padding, no filler, no hedging sentences ("it is important to note that…").
-5. Human editorial voice — take positions, be direct, have opinions. Do not be neutral on everything.
-6. Use "${primaryKeyword}" naturally. Do not force it into every paragraph.
-7. Back up every factual claim with named sources, data points, or verifiable references.
-8. Be honest: acknowledge limitations, trade-offs, and when something "depends" — then explain exactly what it depends on.
-9. Entity clarity: name your topic, brand, locations, and related entities precisely so Google's Knowledge Graph can resolve them correctly.
-10. Each H2 section should be able to stand alone as a complete answer (passage indexing).
+EXPERIENCE — first-hand evidence, not assembled facts:
+- Replace generic claims with specific, quantified, dateable outcomes
+- Use case study language: "[Client/scenario] achieved [result] in [timeframe]"
+- Reference real tools, real processes, real scenarios — not hypothetical examples
+- If the topic involves doing something, write as someone who has genuinely done it
 
-╔══════════════════════════════════════╗
-  BANNED PATTERNS — NEVER USE THESE
-╚══════════════════════════════════════╝
+EXPERTISE — demonstrate deep subject-matter knowledge:
+- Use precise industry terminology where it belongs naturally
+- Explain the WHY behind every recommendation, not just the WHAT
+- Acknowledge trade-offs, edge cases, and limitations — generic content never does this
+- Go beyond surface-level advice — give the detail that separates an expert from a beginner
 
-- "In conclusion" / "To summarise" / "Furthermore" / "It is worth noting"
-- Generic tip lists with no depth: "Tip 1: Be consistent. Tip 2: Stay focused."
-- Passive hedging: "It may be advisable to consider possibly…"
-- Keyword stuffing or unnatural repetition of "${primaryKeyword}"
-- Sections that exist only to add word count with no new information
-- Vague claims: "many experts agree" / "studies show" without naming them
-- Promising to answer something in a heading and then not answering it
+AUTHORITATIVENESS — signal credibility through specifics:
+- Cite concrete numbers, research findings, and named sources
+- Use comparative framing: "versus doing nothing / versus alternatives"
+- Reference industry benchmarks, standards, or widely recognised frameworks where relevant
+- Social proof: client counts, years of operation, measurable results — stated as fact, not boast
 
-╔══════════════════════════════════════╗
-  REQUIRED OUTPUT STRUCTURE
-╚══════════════════════════════════════╝
+TRUSTWORTHINESS — build confidence, not just persuasion:
+- Every claim must be supportable — no overclaiming or empty superlatives
+- Acknowledge what does NOT work, what this approach is NOT suited for
+- Be factually conservative on anything sensitive — never speculate as fact
+- CTA language: benefit-clear and honest, not high-pressure or vague
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 2 — GOOGLE HELPFUL CONTENT SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Google's Helpful Content System (HCS) suppresses content written for search engines, not humans. Every section must pass this test before it is included:
+- Does this provide genuine value the reader could not find identically elsewhere?
+- Does every paragraph add unique information — not padding or repetition?
+- Would someone reading this feel they got a complete, satisfying answer?
+- Is this written from real subject-matter understanding — not assembled from generic knowledge?
+
+WHO created this? → Write with a clear, credible, expert voice.
+HOW was it made? → Reflect genuine effort, original thinking, and expertise.
+WHY does it exist? → Serve the reader's actual need — not just rank for the keyword.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 3 — KEYWORD STRATEGY
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIMARY KEYWORD "${primaryKeyword}":
+- Place in the H1, within the first 100 words, in the most important H2, in the meta title, and in the meta description
+- Use 3–5 times total with natural semantic variations (e.g. for "SEO services Delhi" also use "Delhi SEO agency", "search engine optimisation in Delhi")
+- Keyword density: 1–1.5%. Never force it — if a sentence reads awkwardly, rewrite the sentence
+- Space keyword appearances across different sections — never repeat consecutively
+
+SECONDARY / LSI KEYWORDS:
+- Use as the natural vocabulary of the topic — the way an expert would speak, not as a checklist
+- Distribute across different sections — never cluster multiple secondary keywords in one paragraph
+- Use at least one secondary keyword as the basis of a FAQ question
+- Use at least one secondary keyword in a H3 subheading or bullet header
+- Do not repeat the same secondary keyword more than twice
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 4 — GEO / LLM VISIBILITY (AI Overviews + AI Chatbot Citation)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+44% of Google AI Overview citations come from the first 30% of a page. Content with sourced statistics is cited up to 40% more often than opinion-only content.
+
+ANSWER-FIRST ARCHITECTURE:
+- Every major H2 section must open with a 1–2 sentence direct answer to the implicit question that heading represents — before expanding with detail
+- The opening paragraph must state clearly: what this content covers, who it is for, and what the reader will gain
+
+FACT DENSITY:
+- Include specific numbers, percentages, timeframes, and metrics throughout
+- Attribute statistics: "X% of [audience] [do Y] (Source/study type)" — even "industry data shows" is better than no attribution
+- Target: at least 1 concrete data point or proof point per major H2 section
+
+CONVERSATIONAL HEADING STRUCTURE:
+- H2s and H3s should mirror real user search queries: "How does X work?", "Why choose X?", "What does X include?", "How long does X take?"
+- This is what AI Overviews and LLMs extract and cite
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 5 — CONTENT QUALITY STANDARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPECIFICITY OVER VAGUENESS — every vague claim must become concrete:
+❌ "We have years of experience"  →  ✅ "19+ years and 100,000+ campaigns delivered"
+❌ "We offer great results"  →  ✅ "Clients average a 40% reduction in cost per lead within 90 days"
+❌ "Many experts agree"  →  ✅ "According to [named source/study], X% of [audience] [finding]"
+
+BENEFITS OVER FEATURES:
+Every capability, service, or step must be framed as what it produces for the reader — not just what it is.
+
+HUMAN EXPERT VOICE:
+- Write like a knowledgeable person talking directly and confidently to the reader
+- Short sentences are fine. Contractions are fine. Taking clear positions is required.
+- NEVER use: "Furthermore", "It is worth noting that", "In conclusion", "To summarise", "In today's digital landscape", "In today's fast-paced world", "It is important to note", "It goes without saying", "Needless to say"
+- NEVER write: "We are a leading / top / best-in-class / award-winning provider" — prove it with specifics instead
+- NEVER write: "We offer a wide range of services" — list and describe them specifically
+- NEVER hedge without resolving: "It depends" must always be followed by "specifically, it depends on X, Y, and Z — here is how to decide"
+
+EVERY SENTENCE EARNS ITS PLACE:
+- If a sentence does not inform, persuade, or build trust — cut it
+- No filler. No padding. No restating the same point in slightly different words.
+- No lists of 5 generic items that exist only because AI defaults to 5 items
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 6 — SEARCH INTENT SATISFACTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Search intent: ${intentGuide[searchIntent]}
+A reader who lands on this page must feel their question is completely answered. They must not need to go elsewhere. Never end a section with a promise to answer something and then fail to answer it. Never use "contact us to find out more" as the only answer to a factual question.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 7 — PASSAGE INDEXING & AI EXTRACTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Each H2 section must be able to stand alone as a complete, useful answer to the question it implies. Google indexes individual passages within pages — a strong H2 section can rank independently even if the full page does not. Write every section with this in mind: self-contained, complete, directly answering its heading.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIRED OUTPUT STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 Follow this exact order:
 
 ${sections.map((s, i) => `${i + 1}. ${s}`).join('\n\n')}
 
 ${sections.length > 0 ? (sections.length + 1) + '.' : '1.'} MAIN CONTENT BODY
-   - H1: compelling, specific — speaks to what ${audience} want to achieve (not just the keyword)
-   - Body sections with H2/H3 headers that are genuine content signposts
-   - Minimum 2–3 concrete real-world examples or scenarios embedded naturally
-   - Short expert/author credential note (1–2 sentences) near the top
-   - A strong closing section with a specific, actionable next step for the reader
+   - H1: compelling, specific — speaks directly to what ${audience} want to achieve (not just the keyword)
+   - Body sections with H2/H3 headings that are genuine question-form signposts
+   - Answer-first: every H2 opens with a direct 1-2 sentence answer before expanding
+   - Minimum 2–3 specific, concrete real-world examples or scenarios embedded naturally
+   - At least 1 data point or stat per major section
+   - A strong closing section with a specific, actionable next step for the reader — not a vague "get in touch"
 
-Write the complete content now. Make every word earn its place.`;
+Write the complete, publish-ready content now. Do not truncate. Do not stop early. Every section must be fully written.`;
 
         try {
-            const result = await callClaude(prompt, 5000);
+            const result = await callClaude(prompt, 8000);
             displayResults('generateResults', result);
         } catch (error) {
             showError('generateResults', error.message);
