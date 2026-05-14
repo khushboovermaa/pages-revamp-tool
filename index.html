@@ -1167,10 +1167,10 @@ Apply every one of these to every section you rewrite:
 ===== ORIGINAL CONTENT TO REWRITE =====
 ${content}
 
-Rewrite the full content now, section by section, matching the original structure exactly. Every word should be the best possible version. Output the complete rewritten page, ready to publish.`;
+Rewrite the full content now, section by section, matching the original structure exactly. Every word should be the best possible version. Output the COMPLETE rewritten page — do not stop early, do not truncate, do not summarise the remaining sections. Every single section from the original must appear in the output, fully rewritten. Ready to publish.`;
 
         try {
-            const result = await callClaude(prompt, 4000);
+            const result = await callClaude(prompt, 8000);
             displayResults('rewriteResults', result);
         } catch (error) {
             showError('rewriteResults', error.message);
