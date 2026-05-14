@@ -444,6 +444,11 @@
 <body>
 <div class="container">
     <div class="header">
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.35);border-radius:20px;padding:4px 14px;margin-bottom:14px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#fbbf24;display:inline-block;box-shadow:0 0 6px #fbbf24;"></span>
+            <span style="font-size:11px;font-weight:700;color:#fbbf24;letter-spacing:1px;text-transform:uppercase;">v3.0 — Fresh Content Engine</span>
+            <span style="font-size:10px;color:#92400e;background:rgba(251,191,36,0.2);border-radius:10px;padding:1px 7px;font-weight:600;">14 May 2025</span>
+        </div>
         <h1>Content Score Engine</h1>
         <p>All-in-One AI Content Writing Tool | Google E-E-A-T Optimized</p>
         <button class="btn btn-secondary" onclick="changeKey()" style="margin-top:12px;font-size:12px;padding:6px 14px;">Set / Change API Key</button>
@@ -509,7 +514,7 @@
         <div id="rewrite" class="sub-content">
             <div class="tool-section">
                 <h2 class="section-title">Rewrite &amp; Optimize Your Content</h2>
-                <p class="info-text">Paste your existing content and get a full rewrite — <strong style="color:#60a5fa;">same structure, better words.</strong> Every section, heading, and layout from your original is preserved. Only the copy is improved with stronger language, keyword integration, and E-E-A-T signals.</p>
+                <p class="info-text">Paste your existing content and get <strong style="color:#60a5fa;">100% fresh, original content</strong> — not a paraphrase. The AI uses your original only as a structural reference to match section count, heading topics, and bullet counts. Every sentence is written from scratch with stronger angles, deeper specificity, E-E-A-T signals, and keyword integration. <strong style="color:#34d399;">Nothing is copied or reshuffled from your original.</strong></p>
 
                 <!-- Keywords Block -->
                 <div style="font-size:11px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(96,165,250,0.15);">Keywords</div>
@@ -560,7 +565,7 @@
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:#fda4af;">
                             <input type="checkbox" id="matchWordCount" checked style="width:15px;height:15px;accent-color:#fb7185;">
-                            Match original word count per section — protects card/grid UI layout
+                            Match original word count per section (±10%) — keeps card/grid UI layout intact
                         </label>
                     </div>
                     <div id="wordCountInfo" style="font-size:12px;color:#94a3b8;line-height:1.7;margin-top:4px;"></div>
@@ -1176,145 +1181,141 @@ For each section: count your words as you write. If you are running long, tighte
 
         const pageInfo = PAGE_TYPE_STRUCTURES[pageType] || PAGE_TYPE_STRUCTURES['service'];
 
-        const prompt = `You are a world-class SEO content strategist and editor. You have deep mastery of Google's E-E-A-T framework, Google's Helpful Content System, AI Overview optimisation, and GEO/LLM visibility best practices. You know exactly what separates content that ranks and gets cited by AI from content that doesn't.
+        const prompt = `You are a senior SEO content director who has written hundreds of high-converting service pages for Indian digital agencies. You combine deep Google E-E-A-T knowledge, GEO/AI Overview optimisation expertise, and the ability to write with genuine human authority.
 
-Your job: REWRITE the content below to be the single best page on the internet for the primary keyword. Keep the EXACT same structure as the original — same sections, same headings, same order. Only the words inside each section change.
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR CORE TASK
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+You are given a reference page below. Use it ONLY to extract:
+1. The section names / headings (keep these as your structural skeleton)
+2. Any factual data points — numbers, stats, client counts, years, metrics (keep these accurate)
+3. The bullet point count per section (match this count closely)
+
+Do NOT copy any sentences, phrases, or descriptions from the original. Every sentence you write must be original — written fresh from your expertise, not paraphrased from the source.
+
+The original content is REFERENCE ONLY. Your job is to write content that is categorically better: more specific, more persuasive, more useful, and more likely to rank and convert.
 
 ${wordCountBlock}
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTENT PARAMETERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 PRIMARY KEYWORD: "${keyword}"
 SECONDARY / LSI KEYWORDS: ${secondaryKeywords || 'none specified'}
 PAGE TYPE: ${pageInfo.label}
 TARGET AUDIENCE: ${audience || 'general audience'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 1 — STRUCTURE (NON-NEGOTIABLE)
+RULE 1 — WRITE FRESH, NOT PARAPHRASED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-Preserve every section, heading, and layout from the original 100%.
-Do NOT add, remove, merge, or reorder any section.
-You may sharpen a heading's wording but never change its meaning or intent.
+This is the most important rule. Before writing each section, ask yourself: "Could someone tell this came from the original?" If yes, rewrite it completely.
+
+FORBIDDEN — never do these:
+✗ Rearranging the original sentence structure with different words
+✗ Replacing adjectives while keeping the same idea in the same order
+✗ Keeping the same opening phrase pattern ("Pune's X brands need Y that Z")
+✗ Using the same metaphors or framings as the original
+✗ Writing bullets that mirror the original's bullets in meaning and order
+
+REQUIRED — always do these:
+✓ Open each section with a fresh angle the original did not use
+✓ Use a different proof mechanism per section (data, scenario, mechanism explanation, contrast, outcome story)
+✓ Write bullets that are outcome-statements, not feature labels
+✓ Each paragraph must add something the previous one did not — no circular writing
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 2 — KEYWORD STRATEGY
+RULE 2 — HEADING QUALITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Keep the same section topics as the original but write sharper, more specific headings
+- H2s must answer a real user question or make a specific claim — not just label a section
+- H3s must add depth under their H2 — never repeat the H2's meaning at a lower level
+- No heading should be vague (e.g. "Our Difference", "Why Us") — make it specific and benefit-driven
+- Correct hierarchy always: H1 → H2 → H3. Never use H3 before its parent H2.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 3 — E-E-A-T SIGNALS (Google's Trust Framework)
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Every section must demonstrate at least one of these four signals:
+
+EXPERIENCE — proof of real work done:
+- Specific client outcomes with timeframes: "a Pune-based SaaS brand reduced CPL by 43% in 11 weeks"
+- Real channel names, tools, and processes — not abstract descriptions
+- First-person plural ("we found", "our team identified") where appropriate
+
+EXPERTISE — depth that only an expert can write:
+- Explain the mechanism behind each claim — not just what happens, but why it works
+- Acknowledge trade-offs: what works in one scenario may not work in another
+- Use precise terminology that your target audience recognises and respects
+
+AUTHORITATIVENESS — credibility signals:
+- Lead with the strongest proof point in the section, not at the end
+- Specific numbers beat vague claims every time: "62 brands in Pune's IT corridor" beats "many brands"
+- Industry comparisons and benchmarks establish authority
+
+TRUSTWORTHINESS — honest, low-pressure framing:
+- Never promise outcomes you cannot guarantee
+- Acknowledge limitations where honest — it builds more trust than overclaiming
+- CTAs must explain what happens next: "Book a call — we'll audit your current funnel in the first 20 minutes"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 4 — KEYWORD INTEGRATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 PRIMARY KEYWORD "${keyword}":
-- Place in the H1, within the first 100 words, in the most important H2, in the meta title, and in the meta description
-- Use 3-5 times total — with natural semantic variations (e.g. if keyword is "SEO services Delhi", also use "Delhi SEO agency", "search engine optimisation in Delhi" as natural variants)
-- Keyword density: aim for 1–1.5%. Never force it — if a sentence reads awkwardly, rewrite the sentence around the keyword, not the other way around
-- Never use the exact same phrase consecutively — space keyword appearances across different sections
+- Use in: H1, first 100 words, one major H2, meta title, meta description
+- Total usage: 3–5 times across the full page — never consecutive, never forced
+- Use natural semantic variants — not the exact phrase every time
 
-SECONDARY / LSI KEYWORDS:
-- Treat these as the natural vocabulary of an expert discussing this topic — weave them in as an expert would speak, not as a checklist
-- Distribute across different sections — never cluster multiple secondary keywords in one paragraph
-- Use at least one secondary keyword as the basis of a FAQ question
-- Use at least one secondary keyword in a H3 sub-heading or bullet point header
-- Do not repeat the same secondary keyword more than twice in the full content
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 3 — E-E-A-T (Experience, Expertise, Authoritativeness, Trust)
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-Google's Quality Rater Guidelines make Trust the master signal. Apply all four dimensions:
-
-EXPERIENCE — show first-hand evidence:
-- Replace generic claims with specific, dateable, quantified outcomes
-- Use case study language: "Client X achieved Y result in Z timeframe"
-- Reference real scenarios, real tools, real processes — not hypothetical examples
-- Where the original has vague claims ("we have experience"), replace with specific proof ("we have delivered X for Y clients since Z")
-
-EXPERTISE — demonstrate deep subject knowledge:
-- Use precise industry terminology where it genuinely belongs
-- Explain the "why" behind recommendations, not just the "what"
-- Show awareness of trade-offs, limitations, and nuances — generic content never acknowledges these
-- Where the original has feature-level descriptions, upgrade to outcome-and-mechanism explanations
-
-AUTHORITATIVENESS — signal credibility:
-- Reference specific numbers, results, metrics, and timeframes as proof points
-- Use comparative framing where appropriate: "versus competitors / alternatives / doing nothing"
-- Social proof language: client counts, industries served, years of operation, measurable results
-- Certifications, partnerships, and awards mentioned where relevant
-
-TRUSTWORTHINESS — build confidence:
-- Every claim must be supportable — no overclaiming or empty superlatives
-- Acknowledge what the service does NOT do or is not suited for — honest framing builds trust
-- Avoid misleading or click-bait-style language
-- CTA language should be benefit-clear and low-pressure, not high-pressure or vague
+SECONDARY KEYWORDS:
+- Weave in as the natural language an expert uses — not as a checklist
+- Spread across different sections — never two in the same paragraph
+- At least one must anchor a FAQ question
+- At least one must appear in an H3 or bullet header
+- Maximum 2 uses of each secondary keyword across the full page
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 4 — GOOGLE HELPFUL CONTENT SYSTEM COMPLIANCE
+RULE 5 — GEO & AI OVERVIEW OPTIMISATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-Google's Helpful Content System (HCS) is a site-wide classifier that suppresses content written for search engines rather than humans. Every section you write must pass this test:
+Pages with answer-first architecture are cited in AI Overviews up to 3x more than pages that bury answers.
 
-- Does this section provide genuine value that the reader could not find identically elsewhere?
-- Does every paragraph add unique information — not padding, not repetition?
-- Would someone reading this feel they got a complete, satisfying answer?
-- Is this written from real subject-matter understanding — not assembled from generic knowledge?
-
-Apply the "WHO / HOW / WHY" test to every section:
-WHO: Is there a clear, credible voice behind this content?
-HOW: Does it reflect genuine effort, expertise, and original thinking?
-WHY: Is it clearly serving the reader's need — not just targeting a keyword?
+- Open every H2 section with a 1–2 sentence direct answer to the question its heading implies
+- The page introduction must state: what the page covers, who it's for, and what they'll gain — within the first 60 words
+- Include at least one specific, attributable data point per major section
+- Write H2s and H3s as real questions users ask — this is what AI systems extract and cite
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 5 — GEO / LLM VISIBILITY (AI OVERVIEW + AI CHATBOT CITATION)
+RULE 6 — SENTENCE-LEVEL QUALITY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-44% of AI Overview citations come from the first 30% of a page. Content with sourced statistics is cited up to 40% more often than opinion-only content. Apply these rules throughout:
+Every sentence must pass this test: does it inform, persuade, or build trust? If not, cut it.
 
-ANSWER-FIRST ARCHITECTURE:
-- Every major section should open with a 1–2 sentence direct answer before expanding with detail
-- The opening paragraph of the page must state clearly: what this page is about, who it is for, and what the reader will gain
+BANNED PHRASES — never use these:
+"In today's digital landscape" / "fast-paced world" / "It is worth noting" / "Furthermore" / "In conclusion" / "Needless to say" / "leading agency" / "best-in-class" / "wide range of services" / "holistic approach" / "end-to-end solutions" / "we are passionate about"
 
-FACT DENSITY:
-- Include specific numbers, percentages, timeframes, and metrics throughout
-- Attribute statistics: "X% of [audience] [do Y], according to [source/study type]" — even approximate attribution ("industry data shows") is better than no attribution
-- Target: at least 1 concrete data point or specific proof point per major section
-
-CONVERSATIONAL HEADING STRUCTURE:
-- H2s and H3s should mirror the questions real users type — "How does X work?", "Why choose X?", "What does X include?"
-- This structure is what AI Overviews and LLMs extract from
-
-FAQ SECTION:
-- Each FAQ question should mirror a real conversational search query
-- Each answer: 2–4 sentences, direct, and complete — no "contact us to find out" as the only answer
-- At least one FAQ question should use a secondary keyword as the basis
+REQUIRED WRITING STYLE:
+- Short sentences are powerful. Use them.
+- Specific beats general — always
+- Benefits beat features — always frame what the client gets, not just what you do
+- Direct address: write to "you" (the reader), not about "brands" in third person
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 6 — CONTENT QUALITY STANDARDS
+RULE 7 — CONVERSION COPY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-SPECIFICITY OVER VAGUENESS — replace every vague claim with a concrete one:
-❌ "We have years of experience"  →  ✅ "19+ years and 100,000+ campaigns delivered across India"
-❌ "We offer great results"  →  ✅ "Our clients average a 40% reduction in cost per lead within 90 days"
-❌ "We do keyword research"  →  ✅ "We map every keyword to the specific buying intent it represents — so your content reaches people already deciding to purchase, not just browsing"
-
-BENEFITS OVER FEATURES:
-Every service, process step, or capability should be framed as what it produces for the client — not just what it is.
-
-HUMAN EXPERT VOICE:
-- Write like a knowledgeable person talking directly and confidently to the reader
-- Short, punchy sentences are fine. Contractions are fine.
-- NEVER use: "Furthermore", "It is worth noting that", "In conclusion", "In today's digital landscape", "In today's fast-paced world", "It is important to note", "It goes without saying"
-- NEVER write: "We are a leading / top / best-in-class / award-winning provider" — prove it with specifics instead
-- NEVER write: "We offer a wide range of services" — list them specifically instead
-
-EVERY SENTENCE EARNS ITS PLACE:
-- If a sentence does not inform, persuade, or build trust — cut it
-- No padding. No filler. No restating the same point in different words.
+- Every CTA must name a specific benefit: "Book a Free Funnel Audit" not "Contact Us"
+- Place a trust signal within 2 lines of every CTA (stat, client count, or outcome)
+- The final section of the page must be your strongest conversion moment — build to it
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-RULE 7 — CONVERSION LAYER
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-- CTA language must state a clear benefit: "Book a Free Strategy Call" > "Contact Us"
-- Trust signals near CTAs: client count, results metrics, or a short testimonial-style line
-- The reader should feel confident taking the next step — not pressured
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-ORIGINAL CONTENT TO REWRITE
+REFERENCE CONTENT (structure + data only — do NOT copy wording)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${content}
 
-Rewrite the full content now, section by section, matching the original structure exactly. Output the COMPLETE rewritten page — do not stop early, do not truncate, do not summarise remaining sections. Every single section from the original must appear in full. The output should be ready to publish.
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT INSTRUCTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write the complete, publish-ready page now. Follow the section order from the reference. Match bullet counts per section. Do not stop early or truncate any section. Every section must be fully written with fresh, original sentences.
 
-${matchWordCount ? `FINAL WORD COUNT REMINDER: Each rewritten section MUST match the original section word count within ±10%. The total rewrite must be within ±10% of the original ${totalWords} words. This is a hard constraint — the content lives inside a fixed card/grid UI layout that breaks if text length changes.` : ''}`;
+Before each section, silently check: "Is any sentence here from the original?" If yes, rewrite it completely before moving on.
 
+${matchWordCount ? `WORD COUNT CONSTRAINT: Each section must be within ±10% of the original section word count. Total target: ~${totalWords} words. Compress tightly if running long. Add a specific proof point or example if running short. Never pad.` : 'Word count is flexible — write each section to its natural full length for quality and completeness.'}`;
 
         try {
             const result = await callClaude(prompt, 8000);
