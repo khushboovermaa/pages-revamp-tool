@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Content Score Engine</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; width: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1a2f4b 50%, #132d4a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { 
+            text-align: center; 
+            margin-bottom: 50px; 
+            animation: slideDown 0.6s ease-out;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, rgba(96,165,250,0.1) 0%, rgba(52,211,153,0.05) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(96,165,250,0.2);
+        }
+        .header h1 {
+            font-size: 42px; 
+            font-weight: 800; 
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #60a5fa 0%, #34d399 50%, #fbbf24 100%);
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+        .header p { 
+            color: #cbd5e1; 
+            font-size: 16px; 
+            font-weight: 500;
+        }
+        .main-tabs { 
+            display: flex; 
+            gap: 20px; 
+            margin-bottom: 40px; 
+            border-bottom: 2px solid rgba(96,165,250,0.1); 
+            flex-wrap: wrap;
+            padding-bottom: 20px;
+        }
+        .main-tab-btn {
+            padding: 12px 24px; 
+            background: transparent; 
+            border: none; 
+            color: #94a3b8;
+            cursor: pointer; 
+            font-size: 15px; 
+            font-weight: 600; 
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease; 
+            position: relative; 
+            top: 2px;
+        }
+        .main-tab-btn:hover { 
+            color: #60a5fa;
+            transform: translateY(-2px);
+        }
+        .main-tab-btn.active { 
+            color: #60a5fa; 
+            border-bottom-color: #60a5fa;
+            font-weight: 700;
+        }
+        .main-content { display: none; }
+        .main-content.active { display: block; animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .sub-tabs { 
+            display: flex; 
+            gap: 16px; 
+            margin-bottom: 30px; 
+            border-bottom: 2px solid rgba(96,165,250,0.1); 
+            flex-wrap: wrap;
+            padding-bottom: 16px;
+        }
+        .sub-tab-btn {
+            padding: 10px 20px; 
+            background: transparent; 
+            border: none; 
+            color: #94a3b8;
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 600; 
+            border-bottom: 2px solid transparent; 
+            transition: all 0.3s ease;
+        }
+        .sub-tab-btn:hover { 
+            color: #34d399;
+            transform: translateY(-1px);
+        }
+        .sub-tab-btn.active { 
+            color: #34d399; 
+            border-bottom-color: #34d399;
+            font-weight: 700;
+        }
+        .sub-content { display: none; }
+        .sub-content.active { display: block; }
+        .tool-section {
+            background: linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(25,35,50,0.8) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(96,165,250,0.25);
+            border-radius: 20px;
+            padding: 40px; 
+            margin-bottom: 30px; 
+            animation: slideUp 0.6s ease-out;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .section-title { 
+            font-size: 24px; 
+            font-weight: 800; 
+            margin-bottom: 28px; 
+            color: #f1f5f9;
+            background: linear-gradient(135deg, #60a5fa 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-label { 
+            display: block; 
+            font-size: 14px; 
+            font-weight: 600; 
+            margin-bottom: 10px; 
+            color: #60a5fa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-input, .form-textarea, .form-select {
+            width: 100%; 
+            padding: 14px 18px; 
+            background: rgba(10,18,35,0.7);
+            border: 1px solid rgba(96,165,250,0.3); 
+            border-radius: 12px;
+            color: #e2e8f0; 
+            font-size: 14px; 
+            font-family: inherit; 
+            transition: all 0.3s ease;
+        }
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none; 
+            border-color: #60a5fa; 
+            background: rgba(10,18,35,0.95);
+            box-shadow: 0 0 0 4px rgba(96,165,250,0.15), inset 0 2px 4px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
+        }
+        .form-select option { background: #1e293b; color: #e2e8f0; }
+        .form-textarea { resize: vertical; min-height: 120px; font-family: 'Monaco','Menlo',monospace; font-size: 13px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } .header h1 { font-size: 28px; } }
+        .button-group { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+        .btn { 
+            padding: 14px 28px; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 15px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); 
+            color: white; 
+            box-shadow: 0 10px 30px rgba(96,165,250,0.35);
+        }
+        .btn-primary:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 15px 40px rgba(96,165,250,0.5);
+        }
+        .btn-primary:active { 
+            transform: translateY(-1px); 
+        }
+        .btn-secondary { 
+            background: rgba(96,165,250,0.1); 
+            color: #cbd5e1; 
+            border: 1.5px solid rgba(96,165,250,0.3);
+        }
+        .btn-secondary:hover { 
+            background: rgba(96,165,250,0.15);
+            border-color: rgba(96,165,250,0.5);
+            transform: translateY(-2px);
+        }
+        .results-container { margin-top: 32px; }
+        .content-box { 
+            background: linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(10,18,35,0.8) 100%);
+            border: 1px solid rgba(96,165,250,0.2); 
+            border-radius: 16px; 
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .content-preview { 
+            background: rgba(5,10,20,0.6); 
+            padding: 20px; 
+            border-radius: 12px; 
+            font-size: 13px; 
+            line-height: 1.7; 
+            color: #cbd5e1; 
+            max-height: 500px; 
+            overflow-y: auto; 
+            white-space: pre-wrap; 
+            word-wrap: break-word;
+            border: 1px solid rgba(96,165,250,0.15);
+        }
+        .loading { display: flex; align-items: center; gap: 8px; color: #cbd5e1; font-size: 14px; }
+        .spinner { width: 16px; height: 16px; border: 2px solid rgba(96,165,250,0.3); border-top-color: #60a5fa; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .success-message { 
+            background: linear-gradient(135deg, rgba(52,211,153,0.15) 0%, rgba(52,211,153,0.05) 100%);
+            border: 1.5px solid rgba(52,211,153,0.5); 
+            color: #6ee7b7; 
+            padding: 16px 20px; 
+            border-radius: 12px; 
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .error-message { 
+            background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%);
+            border: 1.5px solid rgba(239,68,68,0.5); 
+            color: #fca5a5; 
+            padding: 16px 20px; 
+            border-radius: 12px; 
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .info-text { 
+            color: #94a3b8; 
+            font-size: 15px; 
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+        .guide-content { color: #cbd5e1; line-height: 1.8; }
+        .guide-content h2 { color: #60a5fa; margin-top: 32px; margin-bottom: 16px; font-size: 20px; }
+        .guide-content h3 { color: #34d399; margin-top: 24px; margin-bottom: 12px; font-size: 16px; }
+        .guide-content p { margin-bottom: 12px; }
+        .guide-content ul, .guide-content ol { margin-left: 20px; margin-bottom: 12px; }
+        .guide-content li { margin-bottom: 8px; }
+        .guide-content code { background: rgba(15,23,42,0.6); padding: 2px 6px; border-radius: 4px; color: #a78bfa; font-family: 'Monaco',monospace; font-size: 12px; }
+        .checklist { list-style: none; margin-left: 0; }
+        .checklist li { padding: 8px 0; padding-left: 24px; position: relative; }
+        .checklist li:before { content: "✓"; position: absolute; left: 0; color: #34d399; font-weight: bold; }
+        .warning-box { background: rgba(239,68,68,0.1); border-left: 3px solid #ef4444; padding: 16px; border-radius: 6px; margin: 16px 0; }
+        .warning-box strong { color: #fca5a5; }
+        .success-box { background: rgba(52,211,153,0.1); border-left: 3px solid #34d399; padding: 16px; border-radius: 6px; margin: 16px 0; }
+        .success-box strong { color: #86efac; }
+
+        .rewrite-section-card {
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(96,165,250,0.2);
+            transition: all 0.3s ease;
+        }
+        .rewrite-section-card:hover {
+            border-color: rgba(96,165,250,0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+        .rewrite-section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 20px;
+            background: linear-gradient(135deg, rgba(96,165,250,0.1) 0%, rgba(52,211,153,0.05) 100%);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+        .rewrite-section-header:hover { 
+            background: linear-gradient(135deg, rgba(96,165,250,0.15) 0%, rgba(52,211,153,0.1) 100%);
+        }
+        .rewrite-section-body { 
+            padding: 20px; 
+            background: linear-gradient(135deg, rgba(10,18,35,0.8) 0%, rgba(5,10,20,0.7) 100%);
+            display: none;
+            border-top: 1px solid rgba(96,165,250,0.15);
+        }
+        .rewrite-section-body.open { display: block; }
+        .before-after-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media(max-width:700px){ .before-after-grid { grid-template-columns: 1fr; } }
+        .before-box, .after-box {
+            border-radius: 12px; 
+            padding: 18px; 
+            font-size: 13px; 
+            line-height: 1.8;
+        }
+        .before-box { 
+            background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(239,68,68,0.05) 100%);
+            border: 1.5px solid rgba(239,68,68,0.3); 
+            color: #fca5a5;
+        }
+        .after-box  { 
+            background: linear-gradient(135deg, rgba(52,211,153,0.1) 0%, rgba(52,211,153,0.05) 100%);
+            border: 1.5px solid rgba(52,211,153,0.3); 
+            color: #6ee7b7;
+        }
+        .before-box strong, .after-box strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; opacity: 0.7; }
+        .why-box { 
+            margin-top: 14px; 
+            padding: 14px 16px; 
+            background: linear-gradient(135deg, rgba(96,165,250,0.1) 0%, rgba(96,165,250,0.05) 100%);
+            border-left: 4px solid #60a5fa; 
+            border-radius: 0 10px 10px 0; 
+            font-size: 13px; 
+            color: #93c5fd; 
+            line-height: 1.7;
+        }
+        .priority-badge {
+            font-size: 11px; 
+            font-weight: 700; 
+            padding: 6px 14px; 
+            border-radius: 20px;
+            text-transform: uppercase; 
+            letter-spacing: 0.6px;
+        }
+        .priority-high   { 
+            background: linear-gradient(135deg, rgba(239,68,68,0.2) 0%, rgba(239,68,68,0.1) 100%);
+            color: #f87171; 
+        }
+        .priority-medium { 
+            background: linear-gradient(135deg, rgba(245,158,11,0.2) 0%, rgba(245,158,11,0.1) 100%);
+            color: #fcd34d; 
+        }
+        .priority-low    { 
+            background: linear-gradient(135deg, rgba(52,211,153,0.2) 0%, rgba(52,211,153,0.1) 100%);
+            color: #6ee7b7; 
+        }
+        .section-impact-label { font-size: 12px; color: #94a3b8; margin-left: auto; }
+        .copy-snippet-btn {
+            font-size: 12px; 
+            padding: 8px 14px; 
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(52,211,153,0.2) 0%, rgba(52,211,153,0.1) 100%);
+            border: 1px solid rgba(52,211,153,0.4);
+            color: #6ee7b7; 
+            cursor: pointer; 
+            margin-top: 10px; 
+            display: inline-block;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .copy-snippet-btn:hover { 
+            background: linear-gradient(135deg, rgba(52,211,153,0.3) 0%, rgba(52,211,153,0.2) 100%);
+            border-color: rgba(52,211,153,0.6);
+            transform: translateY(-1px);
+        }
+
+        .opt-label {
+            display:flex; 
+            align-items:center; 
+            gap:10px; 
+            font-size:13px; 
+            color:#cbd5e1;
+            cursor:pointer; 
+            padding:12px 16px; 
+            border-radius:10px;
+            background: linear-gradient(135deg, rgba(96,165,250,0.05) 0%, rgba(52,211,153,0.03) 100%);
+            border:1px solid rgba(96,165,250,0.15);
+            transition:all 0.3s ease;
+            font-weight: 500;
+        }
+        .opt-label:hover { 
+            background: linear-gradient(135deg, rgba(96,165,250,0.12) 0%, rgba(52,211,153,0.08) 100%);
+            border-color:rgba(96,165,250,0.3);
+            transform: translateY(-1px);
+        }
+        .opt-cb { 
+            accent-color:#60a5fa; 
+            width:16px; 
+            height:16px; 
+            flex-shrink:0;
+            cursor: pointer;
+        }
+
+        /* ── URL History Dropdown ── */
+        .url-input-wrap { position: relative; }
+        .url-history-btn {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
+            color: #93c5fd; border-radius: 6px; padding: 3px 10px; font-size: 12px;
+            cursor: pointer; white-space: nowrap; transition: all 0.2s;
+        }
+        .url-history-btn:hover { background: rgba(96,165,250,0.28); }
+        .url-history-dropdown {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 999;
+            background: #1a2640; border: 1px solid rgba(96,165,250,0.35); border-radius: 10px;
+            overflow: hidden; box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+            display: none; max-height: 240px; overflow-y: auto;
+        }
+        .url-history-dropdown.open { display: block; animation: fadeIn 0.15s ease; }
+        .url-history-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 14px; background: rgba(96,165,250,0.08);
+            border-bottom: 1px solid rgba(96,165,250,0.15);
+            font-size: 11px; font-weight: 600; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.6px;
+        }
+        .url-history-clear-all {
+            font-size: 11px; color: #f87171; background: none; border: none;
+            cursor: pointer; padding: 0;
+        }
+        .url-history-clear-all:hover { text-decoration: underline; }
+        .url-history-item {
+            display: flex; align-items: center; gap: 0; padding: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .url-history-item:last-child { border-bottom: none; }
+        .url-history-fill {
+            flex: 1; padding: 10px 14px; font-size: 13px; color: #cbd5e1;
+            cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            background: none; border: none; text-align: left;
+        }
+        .url-history-fill:hover { background: rgba(96,165,250,0.1); color: #fff; }
+        .url-history-del {
+            padding: 10px 12px; font-size: 14px; color: #64748b;
+            cursor: pointer; background: none; border: none; border-left: 1px solid rgba(255,255,255,0.05);
+            flex-shrink: 0;
+        }
+        .url-history-del:hover { color: #f87171; background: rgba(239,68,68,0.08); }
+        .url-history-empty { padding: 12px 14px; font-size: 13px; color: #475569; font-style: italic; }
+
+        /* competitor textarea history sits below textarea */
+        .comp-history-wrap { position: relative; }
+        .comp-history-dropdown {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 999;
+            background: #1a2640; border: 1px solid rgba(96,165,250,0.35); border-radius: 10px;
+            overflow: hidden; box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+            display: none; max-height: 240px; overflow-y: auto;
+        }
+        .comp-history-dropdown.open { display: block; animation: fadeIn 0.15s ease; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Content Score Engine</h1>
+        <p>All-in-One AI Content Writing Tool | Google E-E-A-T Optimized</p>
+        <button class="btn btn-secondary" onclick="changeKey()" style="margin-top:12px;font-size:12px;padding:6px 14px;">Set / Change API Key</button>
+    </div>
+
+    <div class="main-tabs">
+        <button class="main-tab-btn active" onclick="switchMainTab(event,'tool')">Tool</button>
+        <button class="main-tab-btn" onclick="switchMainTab(event,'guide')">Guide &amp; Help</button>
+    </div>
+
+    <!-- TOOL TAB -->
+    <div id="tool" class="main-content active">
+        <div class="sub-tabs">
+            <button class="sub-tab-btn active" onclick="switchSubTab(event,'compare')">Compare URLs</button>
+            <button class="sub-tab-btn" onclick="switchSubTab(event,'rewrite')">Rewrite</button>
+            <button class="sub-tab-btn" onclick="switchSubTab(event,'generate')">Generate</button>
+        </div>
+
+        <!-- COMPARE -->
+        <div id="compare" class="sub-content active">
+            <div class="tool-section">
+                <h2 class="section-title">Compare Your Content vs Competitors</h2>
+                <p class="info-text">Analyze your URL against competitors. Get E-E-A-T scores, specific sections to rewrite, and before/after suggestions.</p>
+                <div class="form-group">
+                    <label class="form-label">Your URL</label>
+                    <div class="url-input-wrap">
+                        <input type="url" class="form-input" id="yourUrl" placeholder="https://yoursite.com/page" style="padding-right:110px;" autocomplete="off">
+                        <button class="url-history-btn" type="button" onclick="toggleDropdown('yourUrlDrop')">History</button>
+                        <div class="url-history-dropdown" id="yourUrlDrop">
+                            <div class="url-history-header">
+                                Recent URLs
+                                <button class="url-history-clear-all" onclick="clearHistory('yourUrl')">Clear all</button>
+                            </div>
+                            <div id="yourUrlDropList"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Competitor URLs (one per line)</label>
+                    <div class="comp-history-wrap">
+                        <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:6px;">
+                            <button class="url-history-btn" type="button" style="position:static;transform:none;" onclick="toggleDropdown('compUrlDrop')">History</button>
+                        </div>
+                        <textarea class="form-textarea" id="competitorUrls" placeholder="https://competitor1.com/page&#10;https://competitor2.com/page"></textarea>
+                        <div class="comp-history-dropdown" id="compUrlDrop">
+                            <div class="url-history-header">
+                                Recent Competitor Sets
+                                <button class="url-history-clear-all" onclick="clearHistory('compUrls')">Clear all</button>
+                            </div>
+                            <div id="compUrlDropList"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="analyzeUrls()"><span>[LIGHTNING]</span> Analyze</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('yourUrl').value='';document.getElementById('competitorUrls').value='';document.getElementById('compareResults').innerHTML='';">Clear</button>
+                </div>
+                <div id="compareResults" class="results-container"></div>
+            </div>
+        </div>
+
+        <!-- REWRITE -->
+        <div id="rewrite" class="sub-content">
+            <div class="tool-section">
+                <h2 class="section-title">Rewrite &amp; Optimize Your Content</h2>
+                <p class="info-text">Paste your existing content and get a full rewrite — <strong style="color:#60a5fa;">same structure, better words.</strong> Every section, heading, and layout from your original is preserved. Only the copy is improved with stronger language, keyword integration, and E-E-A-T signals.</p>
+
+                <!-- Keywords Block -->
+                <div style="font-size:11px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(96,165,250,0.15);">Keywords</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Primary Keyword <span style="color:#ef4444;">*</span></label>
+                        <input type="text" class="form-input" id="rewriteKeyword" placeholder="e.g., 'SEO services in Delhi'">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Secondary / LSI Keywords <span style="font-size:11px;color:#64748b;font-weight:400;">comma-separated</span></label>
+                        <input type="text" class="form-input" id="rewriteSecondaryKeywords" placeholder="e.g., organic traffic, on-page SEO, search rankings">
+                    </div>
+                </div>
+
+                <!-- Page Settings Block -->
+                <div style="font-size:11px;font-weight:700;color:#34d399;text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(52,211,153,0.15);">Page Settings</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Page Type <span style="color:#ef4444;">*</span></label>
+                        <select class="form-select" id="pageType" onchange="updatePageTypePreview()">
+                            <option value="blog">Blog Post / Article</option>
+                            <option value="service">Service Page</option>
+                            <option value="homepage">Homepage</option>
+                            <option value="case-study">Case Study</option>
+                            <option value="landing">Landing Page</option>
+                            <option value="pillar">Pillar / Hub Page</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Target Audience</label>
+                        <input type="text" class="form-input" id="rewriteAudience" placeholder="e.g., Small business owners in India">
+                    </div>
+                </div>
+
+                <!-- Page Type info note -->
+                <div id="pageTypePreview" style="background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#6ee7b7;line-height:1.7;">
+                    <strong style="color:#34d399;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">✓ Structure Preserved</strong><br>
+                    The AI will follow your original content's sections exactly — same headings, same order. Page type is used only to tune the tone and keyword placement style.
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Your Current Content <span style="color:#ef4444;">*</span></label>
+                    <textarea class="form-textarea" id="currentContent" style="min-height:180px;" placeholder="Paste your existing content here..."></textarea>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="rewriteContent()"><span>✨</span> Rewrite</button>
+                    <button class="btn btn-secondary" onclick="clearRewrite()">Clear</button>
+                </div>
+                <div id="rewriteResults" class="results-container"></div>
+            </div>
+        </div>
+
+        <!-- GENERATE -->
+        <div id="generate" class="sub-content">
+            <div class="tool-section">
+                <h2 class="section-title">Generate Rich SEO Content</h2>
+                <p class="info-text">The more you fill in, the richer and more targeted your content will be. All sections marked <span style="color:#ef4444;">*</span> are required.</p>
+
+                <!-- ── BLOCK 1: Keywords ── -->
+                <div style="font-size:11px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(96,165,250,0.15);">Keywords</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Primary Keyword <span style="color:#ef4444;">*</span></label>
+                        <input type="text" class="form-input" id="primaryKeyword" placeholder="e.g., SEO services in Delhi">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Secondary / LSI Keywords</label>
+                        <input type="text" class="form-input" id="secondaryKeywords" placeholder="e.g., search rankings, organic traffic, on-page SEO">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Internal Linking Anchor Text <span style="font-size:11px;color:#64748b;font-weight:400;">anchor words for your pages</span></label>
+                        <input type="text" class="form-input" id="interLinkKeywords" placeholder="e.g., on-page SEO, technical audit, link building">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Internal URLs to Link To <span style="font-size:11px;color:#64748b;font-weight:400;">one per line</span></label>
+                        <textarea class="form-textarea" id="interLinkUrls" style="min-height:68px;" placeholder="https://yoursite.com/on-page-seo&#10;https://yoursite.com/technical-audit"></textarea>
+                    </div>
+                </div>
+
+                <!-- ── BLOCK 2: Page & Audience ── -->
+                <div style="font-size:11px;font-weight:700;color:#34d399;text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(52,211,153,0.15);">Page & Audience</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Page Type</label>
+                        <select class="form-select" id="genPageType">
+                            <option value="blog">Blog Post / Article</option>
+                            <option value="service">Service Page</option>
+                            <option value="homepage">Homepage</option>
+                            <option value="case-study">Case Study</option>
+                            <option value="landing">Landing Page</option>
+                            <option value="pillar">Pillar / Hub Page</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Search Intent <span style="color:#ef4444;">*</span></label>
+                        <select class="form-select" id="searchIntent">
+                            <option value="informational">Informational — reader wants to learn</option>
+                            <option value="commercial">Commercial — reader is comparing options</option>
+                            <option value="transactional">Transactional — reader wants to buy / hire</option>
+                            <option value="navigational">Navigational — reader wants a specific brand/page</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Target Audience <span style="color:#ef4444;">*</span></label>
+                        <input type="text" class="form-input" id="targetAudience" placeholder="e.g., Small business owners in India">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Audience Knowledge Level</label>
+                        <select class="form-select" id="audienceLevel">
+                            <option value="beginner">Beginner — explain everything simply</option>
+                            <option value="intermediate" selected>Intermediate — some background knowledge</option>
+                            <option value="expert">Expert — technical depth, skip basics</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ── BLOCK 3: Content Style ── -->
+                <div style="font-size:11px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(245,158,11,0.15);">Content Style</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tone of Voice</label>
+                        <select class="form-select" id="toneOfVoice">
+                            <option value="professional">Professional & Authoritative</option>
+                            <option value="conversational">Conversational & Friendly</option>
+                            <option value="educational">Educational & Informative</option>
+                            <option value="persuasive">Persuasive & Sales-Focused</option>
+                            <option value="technical">Technical & Expert-Level</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Content Length</label>
+                        <select class="form-select" id="contentLength">
+                            <option value="short">Short — 600–900 words</option>
+                            <option value="medium" selected>Medium — 1000–1500 words</option>
+                            <option value="long">Long — 1800–2500 words</option>
+                            <option value="pillar">Pillar — 3000+ words</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Originality Signal</label>
+                        <select class="form-select" id="originalitySignal">
+                            <option value="none">None specified</option>
+                            <option value="data">Original data / statistics</option>
+                            <option value="case">Real case study / client example</option>
+                            <option value="quote">Named expert quote</option>
+                            <option value="framework">Unique framework or methodology</option>
+                            <option value="experience">First-hand experience narrative</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Originality Detail <span style="font-size:11px;color:#64748b;font-weight:400;">describe your data / case / quote</span></label>
+                        <input type="text" class="form-input" id="originalityDetail" placeholder="e.g., We grew a client's traffic by 340% in 6 months using...">
+                    </div>
+                </div>
+
+                <!-- ── BLOCK 4: Advanced SEO Signals ── -->
+                <div style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(167,139,250,0.15);">Advanced SEO Signals</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Is this a YMYL Topic?</label>
+                        <select class="form-select" id="ymylType">
+                            <option value="no">No — standard topic</option>
+                            <option value="finance">Yes — Finance / Money</option>
+                            <option value="health">Yes — Health / Medical</option>
+                            <option value="legal">Yes — Legal / Law</option>
+                            <option value="safety">Yes — Safety / Security</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Topic Cluster Role</label>
+                        <select class="form-select" id="clusterRole">
+                            <option value="standalone">Standalone article</option>
+                            <option value="pillar">Pillar page (links out to clusters)</option>
+                            <option value="cluster">Cluster page (links back to pillar)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Pillar Page URL <span style="font-size:11px;color:#64748b;font-weight:400;">if this is a cluster page</span></label>
+                        <input type="text" class="form-input" id="pillarUrl" placeholder="https://yoursite.com/main-topic">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Content Published / Review Date</label>
+                        <input type="text" class="form-input" id="publishDate" placeholder="e.g., April 2025 — for freshness signal">
+                    </div>
+                </div>
+
+                <!-- ── BLOCK 5: Brand ── -->
+                <div style="font-size:11px;font-weight:700;color:#fb7185;text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(251,113,133,0.15);">Brand</div>
+                <div class="form-group">
+                    <label class="form-label">Your Company / Brand Info</label>
+                    <textarea class="form-textarea" id="brandInfo" style="min-height:72px;" placeholder="e.g., WildNet Technologies — a Delhi-based digital marketing agency with 12+ years of experience, 500+ clients across India and the UK, specialists in SEO, PPC, and content marketing."></textarea>
+                </div>
+
+                <!-- ── OUTPUT OPTIONS ── -->
+                <div style="background:rgba(15,23,42,0.5);border:1px solid rgba(96,165,250,0.2);border-radius:12px;padding:18px;margin-bottom:22px;">
+                    <div style="font-size:12px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px;">Include in Output</div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;">
+                        <label class="opt-label"><input type="checkbox" id="optMeta"      checked class="opt-cb"> Meta Title + URL Slug + Description</label>
+                        <label class="opt-label"><input type="checkbox" id="optFaq"       checked class="opt-cb"> 5–6 FAQs (PAA-targeted)</label>
+                        <label class="opt-label"><input type="checkbox" id="optTakeaways" checked class="opt-cb"> Key Takeaways box</label>
+                        <label class="opt-label"><input type="checkbox" id="optTable"     checked class="opt-cb"> Comparison Table (if relevant)</label>
+                        <label class="opt-label"><input type="checkbox" id="optExtLinks"  checked class="opt-cb"> External Authority Links</label>
+                        <label class="opt-label"><input type="checkbox" id="optSchema"          class="opt-cb"> FAQ Schema JSON-LD</label>
+                        <label class="opt-label"><input type="checkbox" id="optGeo"       checked class="opt-cb"> AI Overview / GEO Block</label>
+                        <label class="opt-label"><input type="checkbox" id="optCluster"         class="opt-cb"> Topic Cluster Suggestions</label>
+                        <label class="opt-label"><input type="checkbox" id="optReadability"checked class="opt-cb"> Readability Score + Tips</label>
+                        <label class="opt-label"><input type="checkbox" id="optPassage"   checked class="opt-cb"> Passage Indexing Optimisation</label>
+                        <label class="opt-label"><input type="checkbox" id="optMultiFormat"     class="opt-cb"> Multi-Format Suggestions</label>
+                        <label class="opt-label"><input type="checkbox" id="optFreshness" checked class="opt-cb"> Freshness Signal Statements</label>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="generateContent()"><span>[ROCKET]</span> Generate Rich Content</button>
+                    <button class="btn btn-secondary" onclick="clearGenerate()">Clear All</button>
+                </div>
+                <div id="generateResults" class="results-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GUIDE TAB -->
+    <div id="guide" class="main-content">
+        <div class="tool-section guide-content">
+            <h2>Complete User Guide</h2>
+            <h3>Overview</h3>
+            <p>This all-in-one tool helps you create, optimize, and analyze content using Google's E-E-A-T framework and AI visibility best practices.</p>
+
+            <h3>Feature 1: Compare URLs</h3>
+            <p><strong>Purpose:</strong> Analyze your content vs competitors to find ranking opportunities.</p>
+            <ol>
+                <li>Enter your URL</li>
+                <li>Enter 1-3 competitor URLs (one per line)</li>
+                <li>Click "Analyze"</li>
+                <li>Get E-E-A-T scores, <strong>specific sections to rewrite</strong>, before/after examples, and recommendations</li>
+            </ol>
+
+            <h3>Feature 2: Rewrite Content</h3>
+            <p><strong>Purpose:</strong> Optimize existing content for better rankings.</p>
+            <ol>
+                <li>Enter your target keyword</li>
+                <li>Select page type</li>
+                <li>Paste your current content</li>
+                <li>Click "Rewrite"</li>
+            </ol>
+
+            <h3>Feature 3: Generate Content</h3>
+            <p><strong>Purpose:</strong> Create new, high-quality content from scratch.</p>
+            <ol>
+                <li>Enter primary keyword, secondary keywords</li>
+                <li>Select page type and target audience</li>
+                <li>Describe your brand</li>
+                <li>Click "Generate"</li>
+            </ol>
+
+            <h3>✓ E-E-A-T Checklist</h3>
+            <ul class="checklist">
+                <li>Author name and bio with credentials</li>
+                <li>Author LinkedIn link</li>
+                <li>3+ authoritative citations per 1000 words</li>
+                <li>Original data, case studies, or examples</li>
+                <li>HTTPS (secured site)</li>
+                <li>Clear contact information</li>
+                <li>Privacy policy / Terms of Service</li>
+                <li>Last updated date visible</li>
+                <li>Company About page</li>
+            </ul>
+
+            <div class="success-box">
+                <strong>Pro Tips</strong><br><br>
+                Start with <strong>Compare URLs</strong> — understand your competition first.<br><br>
+                Expand each <strong>"Section to Rewrite"</strong> card to see exactly what to change and why.<br><br>
+                Use the <strong>Copy Suggestion</strong> button to grab the rewritten text instantly.
+            </div>
+
+            <div class="warning-box">
+                <strong>If you get an error:</strong> Check your internet connection and try again. The AI sometimes takes longer on complex prompts — wait a moment and retry.
+            </div>
+
+            <p style="margin-top:32px;color:#64748b;font-size:12px;">Built using Google E-E-A-T Guidelines, AI Overview Best Practices, and Latest SEO Standards (2024-2025)</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_ENDPOINT = "https://api.anthropic.com/v1/messages";
+    let savedKey = sessionStorage.getItem('anthropic_key') || '';
+
+    function getApiKey() {
+        if (savedKey) return savedKey;
+        const key = prompt('KEY: Enter your Anthropic API key:\n(Get one free at console.anthropic.com)\n\nIt will be remembered for this browser session only.');
+        if (!key) throw new Error('API key is required to use this tool.');
+        savedKey = key.trim();
+        sessionStorage.setItem('anthropic_key', savedKey);
+        return savedKey;
+    }
+
+    function changeKey() {
+        const key = prompt('Enter your Anthropic API key (console.anthropic.com):');
+        if (key) { savedKey = key.trim(); sessionStorage.setItem('anthropic_key', savedKey); alert('API key saved for this session.'); }
+    }
+
+    function switchMainTab(event, tabName) {
+        event.preventDefault();
+        document.querySelectorAll('.main-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.main-tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    function switchSubTab(event, tabName) {
+        event.preventDefault();
+        document.querySelectorAll('.sub-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.sub-tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    async function callClaude(prompt, maxTokens) {
+        const key = getApiKey();
+        const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': key,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-6',
+                max_tokens: maxTokens,
+                messages: [{ role: 'user', content: prompt }]
+            })
+        });
+        if (!response.ok) {
+            const errData = await response.json();
+            const msg = errData.error?.message || 'API Error: ' + response.status;
+            if (response.status === 401) {
+                savedKey = '';
+                sessionStorage.removeItem('anthropic_key');
+                throw new Error('Invalid API key — cleared. Try again to re-enter your key.');
+            }
+            throw new Error(msg);
+        }
+        const data = await response.json();
+        return data.content[0].text;
+    }
+
+    // ── ANALYZE URLS ─────────────────────────────────────────────────────────────
+    async function analyzeUrls() {
+        const yourUrl = document.getElementById('yourUrl').value.trim();
+        const competitorUrls = document.getElementById('competitorUrls').value
+            .split('\n').map(u => u.trim()).filter(u => u);
+
+        if (!yourUrl || competitorUrls.length === 0) {
+            showError('compareResults', 'Please provide your URL and at least one competitor URL');
+            return;
+        }
+
+        showLoading('compareResults', 'Analyzing pages… this takes about 30–45 seconds');
+
+        const prompt = `You are an expert SEO auditor. Analyze the URLs below and return ONLY a raw JSON object — no markdown, no code fences, no explanation, nothing before or after the JSON.
+
+YOUR URL: ${yourUrl}
+COMPETITOR URLS: ${competitorUrls.join(', ')}
+
+RULES FOR THE JSON YOU MUST FOLLOW:
+- Every string value must use only plain ASCII-safe text. No curly quotes, no backticks.
+- Do NOT put newlines or unescaped quotes inside any string value — use a space instead of a line break.
+- Keep each string under 200 characters.
+- All score numbers must be integers 0–10.
+
+Return this exact structure:
+{
+  "yourUrl": {
+    "url": "${yourUrl}",
+    "scores": { "eeat": 0, "contentQuality": 0, "keywordIntent": 0, "llmVisibility": 0, "pageTypePractices": 0, "technicalBaseline": 0 },
+    "eeatBreakdown": { "experience": 0, "expertise": 0, "authoritativeness": 0, "trustworthiness": 0 },
+    "strengths": ["strength 1", "strength 2"],
+    "gaps": ["gap 1", "gap 2"],
+    "recommendations": ["rec 1", "rec 2", "rec 3"],
+    "sectionsToRewrite": [
+      {
+        "sectionName": "e.g. Hero Headline",
+        "priority": "HIGH",
+        "whyWeak": "One sentence why this section underperforms vs competitors.",
+        "currentText": "Brief description of what the section currently says.",
+        "suggestedRewrite": "The improved version in 2-3 sentences. No quotes inside this string.",
+        "impact": "One sentence on what fixing this will achieve."
+      }
+    ]
+  },
+  "competitors": [
+    {
+      "url": "competitor url here",
+      "scores": { "eeat": 0, "contentQuality": 0, "keywordIntent": 0, "llmVisibility": 0, "pageTypePractices": 0, "technicalBaseline": 0 },
+      "strengths": ["strength 1"],
+      "gaps": ["gap 1"]
+    }
+  ]
+}
+
+Fill in 4 to 5 sectionsToRewrite entries for YOUR URL. Fill in one competitor object per competitor URL. Use real analysis of the pages. Return ONLY the JSON.`;
+
+        try {
+            const raw = await callClaude(prompt, 4000);
+            const data = safeParseJson(raw);
+
+            function avg(s) {
+                const vals = Object.values(s);
+                return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10;
+            }
+            data.yourUrl.overall = avg(data.yourUrl.scores);
+            if (data.competitors) data.competitors.forEach(c => { c.overall = avg(c.scores); });
+
+            displayCompareResults(data);
+        } catch (err) {
+            showError('compareResults', 'Analysis failed: ' + err.message + '. Please try again.');
+        }
+    }
+
+    function safeParseJson(raw) {
+        let s = raw.replace(/```json|```/gi, '').trim();
+        const start = s.indexOf('{');
+        const end   = s.lastIndexOf('}');
+        if (start === -1 || end === -1) throw new Error('No JSON object found in response');
+        s = s.slice(start, end + 1);
+        try { return JSON.parse(s); } catch (_) {}
+        s = s.replace(/"([^"]*)"/g, (match) =>
+            match.replace(/\n/g, ' ').replace(/\r/g, '').replace(/\t/g, ' ')
+        );
+        try { return JSON.parse(s); } catch (_) {}
+        s = s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
+        try { return JSON.parse(s); } catch (_) {}
+        s = s.replace(/,\s*([\]}])/g, '$1');
+        try { return JSON.parse(s); } catch (e) {
+            throw new Error('JSON parse failed after all fixes: ' + e.message);
+        }
+    }
+
+    function clearRewrite() {
+        document.getElementById('rewriteKeyword').value = '';
+        document.getElementById('rewriteSecondaryKeywords').value = '';
+        document.getElementById('rewriteAudience').value = '';
+        document.getElementById('currentContent').value = '';
+        document.getElementById('rewriteResults').innerHTML = '';
+    }
+
+    const PAGE_TYPE_STRUCTURES = {
+        blog: {
+            label: 'Blog Post / Article (1500–3000 words)',
+            structure: `STRICT BLOG POST STRUCTURE — follow this exact section order:
+1. H1: Compelling, curiosity-driven headline that contains the primary keyword naturally
+2. Introduction (150–200 words): Hook with a surprising stat or question, state the problem, preview what the reader will learn
+3. H2: [Context / Background section] — why this topic matters now
+4. H2: [Main Point 1] with H3 sub-sections as needed — include a real example or data point
+5. H2: [Main Point 2] — include a practical tip the reader can act on today
+6. H2: [Main Point 3] — include a comparison, myth-busting, or expert insight
+7. H2: Key Takeaways — 4–5 bullet points summarising the article
+8. H2: FAQ — 4–5 questions readers actually search (use secondary keywords as question angles)
+9. Conclusion (100–150 words): Reinforce the main lesson, end with a clear next step
+10. Meta Title (under 60 chars) + Meta Description (under 155 chars)`
+        },
+        service: {
+            label: 'Service Page (800–1500 words)',
+            structure: `STRICT SERVICE PAGE STRUCTURE — follow this exact section order:
+1. H1: Keyword-rich headline focused on the client outcome (e.g. "SEO Services That Grow Organic Revenue")
+2. Intro paragraph (80–120 words): What the service is, who it's for, and the core benefit — no fluff
+3. H2: What's Included — bullet list of 5–8 specific service deliverables (be concrete, not vague)
+4. H2: How It Works — numbered 3–4 step process (e.g. Audit → Strategy → Execution → Reporting)
+5. H2: Who This Is For — describe the ideal client in 2–3 sentences
+6. H2: Why Choose Us — 3–4 trust signals (years of experience, client count, specific results, awards)
+7. H2: Results / Proof — 1–2 short case snippets with real numbers (e.g. "+340% organic traffic in 6 months")
+8. H2: Frequently Asked Questions — 4–5 Q&As targeting transactional/commercial search queries
+9. CTA Section: Clear call-to-action (e.g. "Get a Free SEO Audit") with urgency or benefit
+10. Meta Title (under 60 chars) + Meta Description (under 155 chars)`
+        },
+        homepage: {
+            label: 'Homepage',
+            structure: `STRICT HOMEPAGE STRUCTURE — follow this exact section order:
+1. H1: Brand value proposition headline (what you do + who you help + outcome)
+2. Sub-headline: 1 sentence expanding on the H1
+3. H2: What We Do — 3–4 core service/product pillars, each with a 1–2 sentence description
+4. H2: Why [Brand Name] — 3–4 differentiators with specific proof points
+5. H2: How It Works — 3-step process
+6. H2: Results / Social Proof — 2–3 short testimonials or stats
+7. H2: Who We Help — describe 2–3 customer segments
+8. H2: Featured Work or Case Study Snippet
+9. CTA Section: Primary CTA button + secondary soft CTA
+10. Meta Title (under 60 chars) + Meta Description (under 155 chars)`
+        },
+        'case-study': {
+            label: 'Case Study (800–2000 words)',
+            structure: `STRICT CASE STUDY STRUCTURE — follow this exact section order:
+1. H1: Result-focused headline (e.g. "How [Client] Grew Organic Traffic by 340% in 6 Months")
+2. At-a-Glance box: Client name, industry, challenge, result (4 bullet points)
+3. H2: The Challenge — describe the client's problem in specific terms, with context
+4. H2: Our Approach — explain the strategy chosen and why (not just what you did, but why)
+5. H2: The Execution — 3–5 steps taken with specific tactics and tools
+6. H2: The Results — lead with headline numbers, then support with secondary metrics
+7. H2: What We Learned — 2–3 genuine insights or lessons from this project
+8. H2: Client Testimonial — direct quote (if available)
+9. CTA: Offer similar results to the reader
+10. Meta Title (under 60 chars) + Meta Description (under 155 chars)`
+        },
+        landing: {
+            label: 'Landing Page (600–1200 words)',
+            structure: `STRICT LANDING PAGE STRUCTURE — follow this exact section order:
+1. H1: Outcome-focused headline (the #1 thing the visitor gains)
+2. Sub-headline: 1 sentence addressing the visitor's core pain point
+3. H2: What You Get — bullet list of 4–6 specific benefits (benefits, not features)
+4. H2: How It Works — 3 steps, ultra-simple
+5. H2: Social Proof — 2–3 short testimonials or logos with numbers
+6. H2: Is This Right For You? — 3–4 bullet points describing the ideal user
+7. H2: FAQ — 3–4 objection-crushing questions
+8. Primary CTA: Strong action verb + benefit (e.g. "Start My Free Trial")
+9. Meta Title (under 60 chars) + Meta Description (under 155 chars)`
+        },
+        pillar: {
+            label: 'Pillar / Hub Page (3000+ words)',
+            structure: `STRICT PILLAR PAGE STRUCTURE — follow this exact section order:
+1. H1: Comprehensive, topic-defining headline with primary keyword
+2. Table of Contents: Linked list of all H2 sections
+3. Introduction (200–300 words): Define the topic, why it matters, who should read this
+4. H2: What is [Topic]? — clear definition, context, history if relevant
+5. H2: Why [Topic] Matters — data-driven section on importance
+6. H2: [Core Sub-topic 1] — deep-dive with H3 sub-sections, examples, data
+7. H2: [Core Sub-topic 2] — deep-dive with H3 sub-sections
+8. H2: [Core Sub-topic 3] — deep-dive with H3 sub-sections
+9. H2: [Core Sub-topic 4] — deep-dive with H3 sub-sections
+10. H2: Common Mistakes / Myths — 3–5 misconceptions busted
+11. H2: Expert Tips / Best Practices — actionable advice
+12. H2: Tools & Resources — curated list with brief descriptions
+13. H2: FAQ — 5–6 questions (use secondary keywords)
+14. Conclusion + Next Steps
+15. Meta Title (under 60 chars) + Meta Description (under 155 chars)`
+        }
+    };
+
+    // Update the page type preview box when dropdown changes
+    document.addEventListener('DOMContentLoaded', function() {
+        const pt = document.getElementById('pageType');
+        if (pt) { pt.addEventListener('change', updatePageTypePreview); updatePageTypePreview(); }
+    });
+
+    function updatePageTypePreview() {
+        const pageType = document.getElementById('pageType').value;
+        const preview = document.getElementById('pageTypePreview');
+        if (!preview) return;
+        const previewTexts = {
+            blog: '<strong style="color:#60a5fa;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Blog Post Structure</strong><br>H1 → Intro (hook + preview) → 3× H2 content sections → Key Takeaways → FAQ → Conclusion → Meta',
+            service: '<strong style="color:#60a5fa;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Service Page Structure</strong><br>H1 (outcome headline) → Intro → What\'s Included → How It Works → Who It\'s For → Why Choose Us → Results/Proof → FAQ → CTA → Meta',
+            homepage: '<strong style="color:#60a5fa;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Homepage Structure</strong><br>H1 (value prop) → What We Do → Why Us → How It Works → Social Proof → Who We Help → Featured Work → CTA → Meta',
+            'case-study': '<strong style="color:#60a5fa;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Case Study Structure</strong><br>H1 (result headline) → At-a-Glance → Challenge → Approach → Execution → Results → Learnings → Testimonial → CTA → Meta',
+            landing: '<strong style="color:#60a5fa;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Landing Page Structure</strong><br>H1 (outcome) → Sub-headline → Benefits → How It Works → Social Proof → Right For You? → FAQ → CTA → Meta',
+            pillar: '<strong style="color:#60a5fa;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Pillar Page Structure</strong><br>H1 → Table of Contents → Intro → What Is It? → Why It Matters → 4× Deep-Dive H2s → Mistakes → Tips → Tools → FAQ → Conclusion → Meta'
+        };
+        preview.innerHTML = previewTexts[pageType] || '';
+    }
+
+    async function rewriteContent() {
+        const keyword = document.getElementById('rewriteKeyword').value.trim();
+        const secondaryKeywords = document.getElementById('rewriteSecondaryKeywords').value.trim();
+        const pageType = document.getElementById('pageType').value;
+        const audience = document.getElementById('rewriteAudience').value.trim();
+        const content = document.getElementById('currentContent').value.trim();
+
+        if (!keyword || !content) {
+            showError('rewriteResults', 'Please provide a primary keyword and your content to rewrite.');
+            return;
+        }
+
+        showLoading('rewriteResults', 'Rewriting with strict page-type structure…');
+
+        const pageInfo = PAGE_TYPE_STRUCTURES[pageType] || PAGE_TYPE_STRUCTURES['service'];
+
+        const prompt = `You are a world-class SEO content strategist and editor with 15+ years of experience writing content that ranks #1 on Google and converts readers into customers. You deeply understand Google's E-E-A-T guidelines, search intent, semantic SEO, and what separates content that ranks from content that doesn't.
+
+Your job: REWRITE the content below to be the single best page on the internet for the primary keyword. Keep the exact same structure as the original — same sections, same headings, same order. Only the words inside each section change.
+
+PRIMARY KEYWORD: "${keyword}"
+SECONDARY / LSI KEYWORDS: ${secondaryKeywords || 'none specified'}
+PAGE TYPE: ${pageInfo.label}
+TARGET AUDIENCE: ${audience || 'general audience'}
+
+===== STRUCTURE RULE (NON-NEGOTIABLE) =====
+Preserve the original content's sections 100% — same headings, same order, same number of sections.
+Do NOT add, remove, merge, or reorder any section.
+You may sharpen a heading's wording but never change its meaning or intent.
+
+===== HOW A WORLD-CLASS SEO WRITER USES KEYWORDS =====
+Think of keywords the way a great journalist thinks about a story angle — they shape everything naturally, never forced.
+
+PRIMARY KEYWORD "${keyword}":
+- Opens the page — in the H1 and within the first 100 words, because that signals to Google what the page is about
+- Appears in the most important H2 subheading on the page
+- Used 3–5 times total across the full content — naturally, with varied phrasing where possible (e.g. if keyword is "SEO services Delhi", also use "Delhi SEO", "SEO agency in Delhi" as natural variants)
+- In the meta title and meta description
+- Never stuffed — if a sentence reads awkwardly with the keyword, rewrite the sentence, not the keyword rule
+
+SECONDARY / LSI KEYWORDS:
+- Treat these as the vocabulary of the topic — a page about "SEO services" naturally mentions "organic traffic", "search rankings", "on-page optimisation" — use them as an expert would speak
+- Spread across different sections, not clustered in one place
+- Use as H3 subheadings, FAQ questions, or naturally in body paragraphs
+- At least one secondary keyword in the FAQ section as a question angle
+- Never repeat the same secondary keyword more than twice
+
+SEMANTIC RICHNESS:
+- Use related terms, synonyms, and topic vocabulary throughout — this is how Google understands a page covers a topic thoroughly
+- Write as a genuine expert would — using the precise language of the industry
+
+===== WHAT MAKES THE BEST CONTENT =====
+Apply every one of these to every section you rewrite:
+
+1. SPECIFICITY OVER VAGUENESS — replace every vague claim with a specific one
+   Bad: "We have years of experience" 
+   Good: "Our team has delivered SEO results for 300+ clients across 12 industries since 2011"
+
+2. BENEFITS OVER FEATURES — tell the reader what they gain, not just what you do
+   Bad: "We do keyword research"
+   Good: "We identify the exact search terms your ideal customers use — so your content reaches people already looking for what you offer"
+
+3. CONFIDENCE WITHOUT HYPE — strong, direct statements. No corporate fluff.
+   Bad: "We are a leading, award-winning, best-in-class provider"
+   Good: "Our clients average a 3.2x increase in organic traffic within 6 months"
+
+4. EVERY SENTENCE EARNS ITS PLACE — if a sentence doesn't inform, persuade, or build trust, cut it
+
+5. HUMAN EXPERT VOICE — write like a knowledgeable person talking directly to the reader. Contractions are fine. Short punchy sentences are fine. No "Furthermore", "It is worth noting", "In conclusion"
+
+6. SEARCH INTENT SATISFACTION — a reader who lands on this page should feel they got a complete, satisfying answer. No cliffhangers. No "contact us to find out more" as the only answer to a question.
+
+7. E-E-A-T SIGNALS — weave in signals of Experience, Expertise, Authority and Trust naturally:
+   - Specific numbers, results, timeframes
+   - Acknowledgement of trade-offs or limitations (builds trust)
+   - Precise industry language (signals expertise)
+   - Social proof language where relevant
+
+===== WHAT TO NEVER WRITE =====
+- "We are a leading/top/best-in-class company" (prove it instead)
+- "In today's digital landscape / fast-paced world" (cliché opener)
+- "It is important to note that..." (just say it)
+- "We offer a wide range of services" (list them specifically)
+- Passive voice where active is possible
+- Any sentence that could appear on any competitor's page unchanged
+
+===== ORIGINAL CONTENT TO REWRITE =====
+${content}
+
+Rewrite the full content now, section by section, matching the original structure exactly. Every word should be the best possible version. Output the complete rewritten page, ready to publish.`;
+
+        try {
+            const result = await callClaude(prompt, 4000);
+            displayResults('rewriteResults', result);
+        } catch (error) {
+            showError('rewriteResults', error.message);
+        }
+    }
+
+    function clearGenerate() {
+        ['primaryKeyword','secondaryKeywords','interLinkKeywords','interLinkUrls',
+         'targetAudience','brandInfo','originalityDetail','pillarUrl','publishDate'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        document.getElementById('generateResults').innerHTML = '';
+    }
+
+    async function generateContent() {
+        const primaryKeyword    = document.getElementById('primaryKeyword').value.trim();
+        const secondaryKeywords = document.getElementById('secondaryKeywords').value.trim();
+        const interLinkKw       = document.getElementById('interLinkKeywords').value.trim();
+        const interLinkUrls     = document.getElementById('interLinkUrls').value.trim();
+        const pageType          = document.getElementById('genPageType').value;
+        const searchIntent      = document.getElementById('searchIntent').value;
+        const audience          = document.getElementById('targetAudience').value.trim();
+        const audienceLevel     = document.getElementById('audienceLevel').value;
+        const tone              = document.getElementById('toneOfVoice').value;
+        const length            = document.getElementById('contentLength').value;
+        const origSignal        = document.getElementById('originalitySignal').value;
+        const origDetail        = document.getElementById('originalityDetail').value.trim();
+        const ymyl              = document.getElementById('ymylType').value;
+        const clusterRole       = document.getElementById('clusterRole').value;
+        const pillarUrl         = document.getElementById('pillarUrl').value.trim();
+        const publishDate       = document.getElementById('publishDate').value.trim();
+        const brandInfo         = document.getElementById('brandInfo').value.trim();
+
+        const optMeta        = document.getElementById('optMeta').checked;
+        const optFaq         = document.getElementById('optFaq').checked;
+        const optTakeaways   = document.getElementById('optTakeaways').checked;
+        const optTable       = document.getElementById('optTable').checked;
+        const optExtLinks    = document.getElementById('optExtLinks').checked;
+        const optSchema      = document.getElementById('optSchema').checked;
+        const optGeo         = document.getElementById('optGeo').checked;
+        const optCluster     = document.getElementById('optCluster').checked;
+        const optReadability = document.getElementById('optReadability').checked;
+        const optPassage     = document.getElementById('optPassage').checked;
+        const optMultiFormat = document.getElementById('optMultiFormat').checked;
+        const optFreshness   = document.getElementById('optFreshness').checked;
+
+        if (!primaryKeyword || !audience) {
+            showError('generateResults', 'Primary keyword and target audience are required.');
+            return;
+        }
+
+        showLoading('generateResults', 'Building your rich content brief… 30–60 seconds');
+
+        const pageGuides = { blog:'Blog Post / Article', service:'Service Page', homepage:'Homepage', 'case-study':'Case Study', landing:'Landing Page', pillar:'Pillar / Hub Page' };
+        const intentGuide = { informational:'Informational — reader wants to learn, not buy. Prioritise depth, clarity, and practical value.', commercial:'Commercial Investigation — reader is comparing options. Include comparisons, pros/cons, and evidence-backed recommendations.', transactional:'Transactional — reader is ready to act. Lead with trust signals, clear CTAs, pricing context, and social proof.', navigational:'Navigational — reader is looking for a specific brand or page. Confirm entity clearly and provide direct pathways.' };
+        const levelGuide  = { beginner:'Beginner — define all terms, avoid jargon, use analogies.', intermediate:'Intermediate — assume basic knowledge, explain nuances.', expert:'Expert — skip basics, go deep, use precise technical language.' };
+        const toneGuide   = { professional:'Professional and authoritative', conversational:'Conversational and warm, using "you"', educational:'Educational and clear — step-by-step', persuasive:'Persuasive — outcome-focused with strong CTAs', technical:'Technical — expert-level depth' };
+        const lengthGuide = { short:'600–900 words', medium:'1000–1500 words', long:'1800–2500 words', pillar:'3000+ words (comprehensive pillar page)' };
+        const origMap     = { none:'', data:'Include this original data point naturally in the content', case:'Weave this real case study into the content as a specific example', quote:'Attribute this expert quote naturally within the relevant section', framework:'Present this framework clearly — give it a name, explain each part', experience:'Write from this first-hand experience perspective in first person where appropriate' };
+
+        let internalLinksBlock = 'No internal links specified.';
+        if (interLinkKw || interLinkUrls) {
+            const kwList  = interLinkKw.split(',').map(s => s.trim()).filter(Boolean);
+            const urlList = interLinkUrls.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+            const pairs   = kwList.map((kw, i) => `  - Anchor: "${kw}" → URL: ${urlList[i] || '[URL not provided]'}`).join('\n');
+            internalLinksBlock = `INTERNAL LINKS — embed these naturally in the body copy at genuinely relevant points:\n${pairs || '  Keywords: ' + interLinkKw + '\n  URLs: ' + interLinkUrls}\nFormat as [anchor text](URL). Never force — only include where contextually appropriate.`;
+        }
+
+        const ymylBlock = ymyl !== 'no'
+            ? `YMYL TOPIC (${ymyl.toUpperCase()}): This is a Your-Money-Your-Life topic. Apply strict E-E-A-T standards:
+  - Include professional credential signals (author qualifications, institutional references)
+  - Cite authoritative sources: government sites, peer-reviewed research, professional bodies
+  - Add a clear disclaimer (not financial/medical/legal advice)
+  - Be factually conservative — do not overstate or speculate`
+            : '';
+
+        const clusterBlock = clusterRole !== 'standalone'
+            ? `TOPIC CLUSTER ROLE: This is a ${clusterRole === 'pillar' ? 'PILLAR PAGE — link out to 5–6 related subtopic cluster pages at natural points in the content' : 'CLUSTER PAGE — link back to the pillar page at ' + (pillarUrl || '[pillar URL not provided]') + ' at least twice in the content'}.`
+            : '';
+
+        const origBlock = origSignal !== 'none' && origDetail
+            ? `ORIGINALITY SIGNAL (${origSignal}): ${origMap[origSignal] || ''}\nDetail: "${origDetail}"`
+            : '';
+
+        const freshnessBlock = optFreshness
+            ? `FRESHNESS SIGNALS: Include a "Last reviewed: ${publishDate || 'April 2025'}" note. Use present-tense currency markers ("As of ${publishDate || '2025'}…"). Flag any statistics that will need updating and note when they should be reviewed.`
+            : '';
+
+        const sections = [];
+        if (optMeta)        sections.push(`## META SECTION\nMeta Title: under 60 chars, primary keyword near front\nURL Slug: lowercase hyphenated, under 75 chars\nMeta Description: under 155 chars — include keyword + clear value statement + implicit CTA`);
+        if (optGeo)         sections.push(`## AI OVERVIEW / GEO BLOCK\nA standalone 3–5 sentence summary block at the very top of the content (after H1) that directly answers the topic in plain language. Label it "Quick Answer:". Write it so Google's AI Overview can extract and cite it. Use precise entity names, factual statements, no hedging.`);
+        if (optTakeaways)   sections.push(`## KEY TAKEAWAYS\n4–6 bullet points of the most important things the reader will learn. Place this near the top after the intro or GEO block. Each bullet should be a complete, standalone insight — not a teaser.`);
+        if (optTable)       sections.push(`## COMPARISON TABLE\nIf the topic naturally suits comparison (tools, approaches, plans, providers), include a markdown table with 3–5 columns and 4–6 rows. Add a brief 1-sentence conclusion below it. Skip entirely if not relevant.`);
+        if (optPassage)     sections.push(`## PASSAGE INDEXING NOTE\nEach H2 section must begin with a 1–2 sentence direct answer to the implicit question that heading represents. This allows Google to index and rank individual passages independently.`);
+        if (optFaq)         sections.push(`## FAQ SECTION\n5–6 questions that real users search on Google (target People Also Ask questions for this keyword). Each answer must be 2–4 sentences: direct, specific, and genuinely useful. Never give vague answers like "it depends" without then actually explaining what it depends on.`);
+        if (optExtLinks)    sections.push(`## EXTERNAL AUTHORITY LINKS\n3–5 real links to authoritative external sources (government bodies, major publications, Google documentation, leading research, industry standards). Format: [Source Name](real URL) — one sentence explaining why it is relevant. Only include URLs you are confident exist and are accurate.`);
+        if (optCluster)     sections.push(`## TOPIC CLUSTER SUGGESTIONS\nList 5–6 related articles this site should also publish to build topical authority on this subject. For each: suggested H1, target keyword, brief (1 sentence) rationale for why it strengthens the cluster.`);
+        if (optReadability) sections.push(`## READABILITY ASSESSMENT\nEstimate the Flesch-Kincaid reading level of this content (target Grade 7–9 for general audiences, up to Grade 12 for expert). List 2–3 specific sentences from the content that could be simplified, and provide the simpler version.`);
+        if (optMultiFormat) sections.push(`## MULTI-FORMAT SUGGESTIONS\nFor each major section, suggest what visual or media format would enhance it: infographic, data chart, video embed, screenshot, pull quote, interactive tool, or image. Provide a one-line brief for each suggestion.`);
+        if (optSchema)      sections.push(`## FAQ SCHEMA (JSON-LD)\nProduce a valid JSON-LD FAQ schema for all FAQ Q&As. Wrap in <script type="application/ld+json"> tags. Ensure all special characters in answers are properly escaped.`);
+
+        const prompt = `You are a world-class SEO content strategist. Your task is to produce the richest, most thorough, publish-ready content possible for the brief below, following every Google guideline precisely.
+
+╔══════════════════════════════════════╗
+  CONTENT BRIEF
+╚══════════════════════════════════════╝
+
+Primary keyword:    "${primaryKeyword}"
+Secondary / LSI:    ${secondaryKeywords || 'derive naturally — use the full semantic field around this topic'}
+Page type:          ${pageGuides[pageType] || pageType}
+Search intent:      ${intentGuide[searchIntent]}
+Target audience:    ${audience}
+Audience level:     ${levelGuide[audienceLevel]}
+Tone:               ${toneGuide[tone]}
+Target length:      ${lengthGuide[length]}
+Brand context:      ${brandInfo || 'not provided — write with generic but credible authority'}
+
+${internalLinksBlock}
+${ymylBlock}
+${clusterBlock}
+${origBlock}
+${freshnessBlock}
+
+╔══════════════════════════════════════╗
+  GOOGLE PEOPLE-FIRST RULES — ALL MANDATORY
+╚══════════════════════════════════════╝
+
+1. Write for the reader's actual goal — not to game search rankings.
+2. Fully satisfy search intent: the reader must not need to look elsewhere after reading this.
+3. Demonstrate real experience: embed specific examples, concrete numbers, and practical observations that only someone with hands-on knowledge would know.
+4. No padding, no filler, no hedging sentences ("it is important to note that…").
+5. Human editorial voice — take positions, be direct, have opinions. Do not be neutral on everything.
+6. Use "${primaryKeyword}" naturally. Do not force it into every paragraph.
+7. Back up every factual claim with named sources, data points, or verifiable references.
+8. Be honest: acknowledge limitations, trade-offs, and when something "depends" — then explain exactly what it depends on.
+9. Entity clarity: name your topic, brand, locations, and related entities precisely so Google's Knowledge Graph can resolve them correctly.
+10. Each H2 section should be able to stand alone as a complete answer (passage indexing).
+
+╔══════════════════════════════════════╗
+  BANNED PATTERNS — NEVER USE THESE
+╚══════════════════════════════════════╝
+
+- "In conclusion" / "To summarise" / "Furthermore" / "It is worth noting"
+- Generic tip lists with no depth: "Tip 1: Be consistent. Tip 2: Stay focused."
+- Passive hedging: "It may be advisable to consider possibly…"
+- Keyword stuffing or unnatural repetition of "${primaryKeyword}"
+- Sections that exist only to add word count with no new information
+- Vague claims: "many experts agree" / "studies show" without naming them
+- Promising to answer something in a heading and then not answering it
+
+╔══════════════════════════════════════╗
+  REQUIRED OUTPUT STRUCTURE
+╚══════════════════════════════════════╝
+
+Follow this exact order:
+
+${sections.map((s, i) => `${i + 1}. ${s}`).join('\n\n')}
+
+${sections.length > 0 ? (sections.length + 1) + '.' : '1.'} MAIN CONTENT BODY
+   - H1: compelling, specific — speaks to what ${audience} want to achieve (not just the keyword)
+   - Body sections with H2/H3 headers that are genuine content signposts
+   - Minimum 2–3 concrete real-world examples or scenarios embedded naturally
+   - Short expert/author credential note (1–2 sentences) near the top
+   - A strong closing section with a specific, actionable next step for the reader
+
+Write the complete content now. Make every word earn its place.`;
+
+        try {
+            const result = await callClaude(prompt, 5000);
+            displayResults('generateResults', result);
+        } catch (error) {
+            showError('generateResults', error.message);
+        }
+    }
+
+    const DIMS = [
+        { key: 'eeat',               label: 'E-E-A-T Signals',   icon: '[MEDAL]', color: '#a78bfa' },
+        { key: 'contentQuality',     label: 'Content Quality',   icon: '[DOCUMENT]', color: '#60a5fa' },
+        { key: 'keywordIntent',      label: 'Keyword & Intent',  icon: '[MAGNIFIER]', color: '#34d399' },
+        { key: 'llmVisibility',      label: 'LLM / AI Visibility', icon: '[ROBOT]', color: '#f59e0b' },
+        { key: 'pageTypePractices',  label: 'Page-Type Practices', icon: '[CLIPBOARD]', color: '#fb7185' },
+        { key: 'technicalBaseline',  label: 'Technical Baseline', icon: '[GEAR]', color: '#67e8f9' },
+    ];
+
+    function tierInfo(score) {
+        if (score >= 9)   return { label: 'Excellent', color: '#34d399', bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.4)' };
+        if (score >= 7.5) return { label: 'Good',      color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.4)' };
+        if (score >= 6)   return { label: 'Average',   color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.4)' };
+        if (score >= 4)   return { label: 'Poor',      color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.4)' };
+        return                   { label: 'Failing',   color: '#dc2626', bg: 'rgba(220,38,38,0.12)',   border: 'rgba(220,38,38,0.4)' };
+    }
+
+    function bigScoreCircle(score, size) {
+        const t = tierInfo(score);
+        const r  = size === 'lg' ? 52 : 36;
+        const fs = size === 'lg' ? 28 : 18;
+        const lfs = size === 'lg' ? 11 : 10;
+        return `<div style="width:${r*2}px;height:${r*2}px;border-radius:50%;background:${t.bg};border:2px solid ${t.border};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="font-size:${fs}px;font-weight:700;color:${t.color};line-height:1;">${score}</span>
+            <span style="font-size:${lfs}px;color:${t.color};opacity:0.8;">/10</span>
+        </div>`;
+    }
+
+    function metricCard(dim, score) {
+        const pct = score * 10;
+        const t = tierInfo(score);
+        return `<div style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:16px;">${dim.icon}</span>
+                    <span style="font-size:13px;color:#cbd5e1;font-weight:500;">${dim.label}</span>
+                </div>
+                <span style="font-size:18px;font-weight:700;color:${dim.color};">${score}<span style="font-size:11px;color:#64748b;font-weight:400;">/10</span></span>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border-radius:99px;height:6px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:${dim.color};border-radius:99px;"></div>
+            </div>
+            <div style="margin-top:6px;font-size:11px;color:${t.color};font-weight:500;">${t.label}</div>
+        </div>`;
+    }
+
+    function eeatRadar(eb) {
+        return ['experience','expertise','authoritativeness','trustworthiness'].map(k => {
+            const label = k.charAt(0).toUpperCase() + k.slice(1);
+            const val = eb[k] || 0;
+            return `<div style="margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <span style="font-size:12px;color:#94a3b8;">${label}</span>
+                    <span style="font-size:12px;font-weight:600;color:#a78bfa;">${val}/10</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.06);border-radius:99px;height:5px;overflow:hidden;">
+                    <div style="width:${val*10}%;height:100%;background:#a78bfa;border-radius:99px;"></div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function pillList(items, color, icon) {
+        return items.map(t => `<div style="display:flex;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border-left:3px solid ${color};border-radius:0 8px 8px 0;margin-bottom:6px;">
+            <span style="font-size:13px;">${icon}</span>
+            <span style="font-size:13px;color:#cbd5e1;line-height:1.5;">${t}</span>
+        </div>`).join('');
+    }
+
+    function numberedList(items, color) {
+        return items.map((t, i) => `<div style="display:flex;gap:12px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:6px;align-items:flex-start;">
+            <span style="width:22px;height:22px;min-width:22px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0f172a;">${i+1}</span>
+            <span style="font-size:13px;color:#cbd5e1;line-height:1.5;margin-top:2px;">${t}</span>
+        </div>`).join('');
+    }
+
+    let sectionCounter = 0;
+
+    function priorityBadge(p) {
+        const cls = p === 'HIGH' ? 'priority-high' : p === 'MEDIUM' ? 'priority-medium' : 'priority-low';
+        const icon = p === 'HIGH' ? '[RED-CIRCLE]' : p === 'MEDIUM' ? '[YELLOW-CIRCLE]' : '[GREEN-CIRCLE]';
+        return `<span class="priority-badge ${cls}">${icon} ${p}</span>`;
+    }
+
+    function sectionRewritePanel(sections) {
+        if (!sections || sections.length === 0) return '';
+
+        const cards = sections.map(s => {
+            const id = 'sec_' + (sectionCounter++);
+            const safeRewrite = (s.suggestedRewrite || '').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+            return `<div class="rewrite-section-card">
+                <div class="rewrite-section-header" onclick="toggleSection('${id}')">
+                    <span style="font-size:18px;">[PENCIL]</span>
+                    <span style="font-size:14px;font-weight:600;color:#f1f5f9;">${s.sectionName || 'Section'}</span>
+                    ${priorityBadge(s.priority || 'MEDIUM')}
+                    <span class="section-impact-label" id="${id}_arrow">▼</span>
+                </div>
+                <div class="rewrite-section-body" id="${id}">
+                    <p style="font-size:13px;color:#f59e0b;margin-bottom:12px;"><strong>Why it's weak:</strong> ${s.whyWeak || ''}</p>
+                    <div class="before-after-grid">
+                        <div class="before-box">
+                            <strong>Current Text</strong>
+                            ${s.currentText || 'N/A'}
+                        </div>
+                        <div class="after-box">
+                            <strong>Suggested Rewrite</strong>
+                            ${s.suggestedRewrite || ''}
+                            <br>
+                            <button class="copy-snippet-btn" onclick="copySnippet('${id}_snippet', event)">Copy suggestion</button>
+                            <span id="${id}_snippet" style="display:none;">${s.suggestedRewrite || ''}</span>
+                        </div>
+                    </div>
+                    <div class="why-box"><strong>Impact if fixed:</strong> ${s.impact || ''}</div>
+                </div>
+            </div>`;
+        }).join('');
+
+        return `<div style="margin-top:24px;">
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px;">
+                Sections You Need to Rewrite (${sections.length})
+                <span style="font-size:11px;color:#64748b;font-weight:400;margin-left:8px;">Click any card to expand</span>
+            </div>
+            ${cards}
+        </div>`;
+    }
+
+    function toggleSection(id) {
+        const body  = document.getElementById(id);
+        const arrow = document.getElementById(id + '_arrow');
+        const isOpen = body.classList.contains('open');
+        body.classList.toggle('open', !isOpen);
+        if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
+    }
+
+    function copySnippet(spanId, event) {
+        event.stopPropagation();
+        const text = document.getElementById(spanId).textContent;
+        navigator.clipboard.writeText(text)
+            .then(() => { event.target.textContent = 'Copied!'; setTimeout(() => { event.target.textContent = 'Copy suggestion'; }, 2000); })
+            .catch(() => alert('Copy failed. Please select and copy manually.'));
+    }
+
+    function urlCard(d, isYours) {
+        const t = tierInfo(d.overall);
+        const grid = DIMS.map(dim => metricCard(dim, d.scores[dim.key] || 0)).join('');
+        return `<div style="background:rgba(22,32,48,0.9);border:1px solid ${isYours ? 'rgba(96,165,250,0.4)' : 'rgba(148,163,184,0.12)'};border-radius:16px;padding:24px;margin-bottom:20px;">
+
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+                ${bigScoreCircle(d.overall, 'lg')}
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:11px;font-weight:600;color:${isYours ? '#60a5fa' : '#64748b'};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">${isYours ? 'Your Page' : 'Competitor'}</div>
+                    <div style="font-size:14px;color:#e2e8f0;font-weight:500;word-break:break-all;">${d.url}</div>
+                    <div style="font-size:12px;color:${t.color};margin-top:4px;font-weight:600;">${t.label} · Overall ${d.overall}/10</div>
+                </div>
+            </div>
+
+            <!-- 6 Metric Cards Grid -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;">
+                ${grid}
+            </div>
+
+            ${d.eeatBreakdown ? `<details style="margin-bottom:16px;">
+                <summary style="cursor:pointer;font-size:13px;font-weight:600;color:#a78bfa;padding:10px 0;list-style:none;display:flex;align-items:center;gap:6px;">
+                    <span>▶</span> E-E-A-T Breakdown
+                </summary>
+                <div style="background:rgba(15,23,42,0.5);border-radius:10px;padding:16px;margin-top:10px;">
+                    ${eeatRadar(d.eeatBreakdown)}
+                </div>
+            </details>` : ''}
+
+            <!-- Strengths & Gaps -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:${isYours ? '20px' : '0'};">
+                ${d.strengths && d.strengths.length ? `<div>
+                    <div style="font-size:12px;font-weight:600;color:#34d399;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Strengths</div>
+                    ${pillList(d.strengths, '#34d399', '+')}
+                </div>` : '<div></div>'}
+                ${d.gaps && d.gaps.length ? `<div>
+                    <div style="font-size:12px;font-weight:600;color:#f87171;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Critical Gaps</div>
+                    ${pillList(d.gaps, '#ef4444', '−')}
+                </div>` : '<div></div>'}
+            </div>
+
+            ${isYours && d.recommendations && d.recommendations.length ? `<div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:16px;margin-bottom:4px;">
+                <div style="font-size:12px;font-weight:600;color:#60a5fa;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Recommendations to Outrank</div>
+                ${numberedList(d.recommendations, '#60a5fa')}
+            </div>` : ''}
+
+            ${isYours ? sectionRewritePanel(d.sectionsToRewrite) : ''}
+        </div>`;
+    }
+
+    function displayCompareResults(data) {
+        const container = document.getElementById('compareResults');
+        const all = [data.yourUrl, ...(data.competitors || [])];
+
+        let compHtml = `<div style="background:rgba(15,23,42,0.7);border:1px solid rgba(148,163,184,0.12);border-radius:14px;padding:20px;margin-bottom:24px;">
+            <div style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">Overall Score Comparison</div>
+            <div style="display:flex;gap:12px;align-items:flex-end;height:100px;margin-bottom:8px;">`;
+
+        all.forEach(d => {
+            const isYours = d.url === data.yourUrl.url;
+            const t = tierInfo(d.overall);
+            const barH = Math.round((d.overall / 10) * 80);
+            const shortUrl = d.url.replace(/https?:\/\//, '').substring(0, 25) + (d.url.length > 33 ? '…' : '');
+            compHtml += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <span style="font-size:12px;font-weight:700;color:${t.color};">${d.overall}</span>
+                <div style="width:100%;height:${barH}px;background:${isYours ? 'rgba(96,165,250,0.5)' : 'rgba(148,163,184,0.2)'};border-radius:6px 6px 0 0;border-top:2px solid ${isYours ? '#60a5fa' : 'rgba(148,163,184,0.3)'};min-height:4px;"></div>
+                <span style="font-size:10px;color:${isYours ? '#60a5fa' : '#64748b'};text-align:center;word-break:break-all;">${shortUrl}</span>
+            </div>`;
+        });
+        compHtml += `</div></div>`;
+
+        container.innerHTML = `<div style="margin-top:24px;">${compHtml}${all.map((d, i) => urlCard(d, i === 0)).join('')}</div>`;
+    }
+
+    function mdToHtml(md) {
+        let s = md.replace(/<[^>]+>/g, '');
+        const lines = s.split('\n');
+        const out   = [];
+        let inList  = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+
+            if (/^#### (.+)/.test(line)) {
+                if (inList) { out.push('</ul>'); inList = false; }
+                out.push(`<h4 style="color:#93c5fd;font-size:14px;font-weight:600;margin:16px 0 5px;">${inlineFormat(line.replace(/^#### /, ''))}</h4>`);
+                continue;
+            }
+            if (/^### (.+)/.test(line)) {
+                if (inList) { out.push('</ul>'); inList = false; }
+                out.push(`<h3 style="color:#60a5fa;font-size:17px;font-weight:600;margin:22px 0 8px;">${inlineFormat(line.replace(/^### /, ''))}</h3>`);
+                continue;
+            }
+            if (/^## (.+)/.test(line)) {
+                if (inList) { out.push('</ul>'); inList = false; }
+                out.push(`<h2 style="color:#38bdf8;font-size:20px;font-weight:700;margin:28px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(96,165,250,0.25);">${inlineFormat(line.replace(/^## /, ''))}</h2>`);
+                continue;
+            }
+            if (/^# (.+)/.test(line)) {
+                if (inList) { out.push('</ul>'); inList = false; }
+                out.push(`<h1 style="color:#e2e8f0;font-size:26px;font-weight:700;margin:0 0 18px;line-height:1.3;">${inlineFormat(line.replace(/^# /, ''))}</h1>`);
+                continue;
+            }
+
+            if (/^---+$/.test(line.trim())) {
+                if (inList) { out.push('</ul>'); inList = false; }
+                out.push('<hr style="border:none;border-top:1px solid rgba(148,163,184,0.2);margin:22px 0;">');
+                continue;
+            }
+
+            if (/^[\-\*] (.+)/.test(line)) {
+                if (!inList) { out.push('<ul style="margin:8px 0 10px 22px;padding:0;">'); inList = true; }
+                out.push(`<li style="margin-bottom:6px;color:#cbd5e1;line-height:1.7;">${inlineFormat(line.replace(/^[\-\*] /, ''))}</li>`);
+                continue;
+            }
+
+            if (/^\d+\. (.+)/.test(line)) {
+                if (!inList) { out.push('<ol style="margin:8px 0 10px 22px;padding:0;">'); inList = true; }
+                out.push(`<li style="margin-bottom:6px;color:#cbd5e1;line-height:1.7;">${inlineFormat(line.replace(/^\d+\. /, ''))}</li>`);
+                continue;
+            }
+
+            if (line.trim() === '') {
+                if (inList) { out.push('</ul>'); inList = false; }
+                out.push('<div style="height:10px;"></div>');
+                continue;
+            }
+
+            if (inList) { out.push('</ul>'); inList = false; }
+            out.push(`<p style="margin:0 0 12px;color:#cbd5e1;line-height:1.8;font-size:14px;">${inlineFormat(line)}</p>`);
+        }
+
+        if (inList) out.push('</ul>');
+        return out.join('\n');
+    }
+
+    function inlineFormat(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#f1f5f9;font-weight:600;">$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em style="color:#e2e8f0;">$1</em>')
+            .replace(/`([^`]+)`/g, '<code style="background:rgba(15,23,42,0.8);padding:2px 7px;border-radius:4px;color:#a78bfa;font-family:monospace;font-size:12px;">$1</code>');
+    }
+
+    function mdToPlainText(md) {
+        return md
+            .replace(/<[^>]+>/g, '')
+            .replace(/^#{1,4} /gm, '')
+            .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+            .replace(/\*\*(.+?)\*\*/g, '$1')
+            .replace(/\*(.+?)\*/g, '$1')
+            .replace(/`([^`]+)`/g, '$1')
+            .replace(/^[\-\*] /gm, '• ')
+            .replace(/^\d+\. /gm, (m, o, s) => m)
+            .replace(/^---+$/gm, '─────────────────────────')
+            .trim();
+    }
+
+    const _resultStore = {};
+
+    function displayResults(containerId, content) {
+        _resultStore[containerId] = content;
+        const rendered = mdToHtml(content);
+        document.getElementById(containerId).innerHTML = `
+            <div style="margin-top:24px;">
+                <div class="success-message">Done! Formatted and ready to copy or download.</div>
+                <div class="content-box">
+                    <div class="content-preview" style="white-space:normal;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.75;max-height:560px;overflow-y:auto;">
+                        ${rendered}
+                    </div>
+                </div>
+                <div class="button-group" style="margin-top:16px;">
+                    <button class="btn btn-primary"   onclick="copyResult('${containerId}')">Copy Clean Text</button>
+                    <button class="btn btn-secondary" onclick="downloadWord('${containerId}')">Download as Word (.doc)</button>
+                    <button class="btn btn-secondary" onclick="downloadTxt('${containerId}')">Download as .txt</button>
+                </div>
+            </div>`;
+    }
+
+    function copyResult(containerId) {
+        const md   = _resultStore[containerId] || '';
+        const text = mdToPlainText(md);
+        navigator.clipboard.writeText(text)
+            .then(() => alert('Copied! Paste anywhere — Word, Google Docs, Notion, etc.'))
+            .catch(() => alert('Copy failed. Please select text manually.'));
+    }
+
+    function downloadWord(containerId) {
+        const md = _resultStore[containerId] || '';
+        const wordHtml = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <title>Content</title>
+  <style>
+    body { font-family: Calibri, sans-serif; font-size: 11pt; color: #1a1a1a; margin: 2cm; line-height: 1.6; }
+    h1 { font-size: 20pt; color: #1a3a5c; margin-bottom: 6pt; }
+    h2 { font-size: 16pt; color: #1a3a5c; border-bottom: 1px solid #ccc; padding-bottom: 4pt; margin-top: 18pt; }
+    h3 { font-size: 13pt; color: #1a5c3a; margin-top: 14pt; }
+    h4 { font-size: 11pt; color: #444; margin-top: 10pt; }
+    p  { margin-bottom: 8pt; }
+    ul { margin-left: 18pt; }
+    li { margin-bottom: 4pt; }
+    strong { font-weight: bold; }
+    em { font-style: italic; }
+    hr { border: none; border-top: 1px solid #ccc; margin: 12pt 0; }
+    code { font-family: Courier New, monospace; background: #f5f5f5; padding: 1pt 3pt; }
+  </style>
+</head>
+<body>
+${mdToWordHtml(md)}
+</body>
+</html>`;
+        const blob = new Blob(['\ufeff' + wordHtml], { type: 'application/msword;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'content.doc';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function mdToWordHtml(md) {
+        let h = md
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+            .replace(/^### (.+)$/gm,  '<h3>$1</h3>')
+            .replace(/^## (.+)$/gm,   '<h2>$1</h2>')
+            .replace(/^# (.+)$/gm,    '<h1>$1</h1>')
+            .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+            .replace(/^---+$/gm, '<hr>')
+            .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+            .replace(/^\d+\. (.+)$/gm,  '<li>$1</li>')
+            .replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\n{2,}/g, '</p><p>')
+            .replace(/\n/g, '<br>');
+        return `<p>${h}</p>`;
+    }
+
+    function downloadTxt(containerId) {
+        const md   = _resultStore[containerId] || '';
+        const text = mdToPlainText(md);
+        const a = document.createElement('a');
+        a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+        a.download = 'content.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function showLoading(containerId, msg) {
+        document.getElementById(containerId).innerHTML = `
+            <div style="margin-top:24px;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>${msg || 'Analyzing… (20-30 seconds)'}</span>
+                </div>
+            </div>`;
+    }
+
+    function showError(containerId, message) {
+        document.getElementById(containerId).innerHTML = `
+            <div class="error-message" style="margin-top:24px;">${message}</div>`;
+    }
+
+    const LS_YOUR   = 'cse_your_urls';
+    const LS_COMP   = 'cse_comp_sets';
+    const MAX_HIST  = 8;
+
+    function loadHistory(key) {
+        try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+    }
+    function saveHistory(key, arr) {
+        try { localStorage.setItem(key, JSON.stringify(arr)); } catch {}
+    }
+
+    function pushYourUrl(url) {
+        if (!url) return;
+        let arr = loadHistory(LS_YOUR).filter(u => u !== url);
+        arr.unshift(url);
+        saveHistory(LS_YOUR, arr.slice(0, MAX_HIST));
+    }
+    function pushCompSet(raw) {
+        const clean = raw.trim();
+        if (!clean) return;
+        let arr = loadHistory(LS_COMP).filter(s => s !== clean);
+        arr.unshift(clean);
+        saveHistory(LS_COMP, arr.slice(0, MAX_HIST));
+    }
+
+    function renderYourUrlDrop() {
+        const list = document.getElementById('yourUrlDropList');
+        if (!list) return;
+        const arr = loadHistory(LS_YOUR);
+        if (arr.length === 0) {
+            list.innerHTML = `<div class="url-history-empty">No history yet — URLs are saved after each Analyze run.</div>`;
+            return;
+        }
+        list.innerHTML = arr.map((u, i) => `
+            <div class="url-history-item">
+                <button class="url-history-fill" title="${u}" onclick="autofillYourUrl(${i})">${u}</button>
+                <button class="url-history-del" title="Remove" onclick="removeYourUrl(${i})">X</button>
+            </div>`).join('');
+    }
+
+    function renderCompDrop() {
+        const list = document.getElementById('compUrlDropList');
+        if (!list) return;
+        const arr = loadHistory(LS_COMP);
+        if (arr.length === 0) {
+            list.innerHTML = `<div class="url-history-empty">No history yet — competitor sets are saved after each Analyze run.</div>`;
+            return;
+        }
+        list.innerHTML = arr.map((s, i) => {
+            const preview = s.split('\n').filter(Boolean).join(' · ').substring(0, 60) + (s.length > 60 ? '…' : '');
+            return `<div class="url-history-item">
+                <button class="url-history-fill" title="${s}" onclick="autofillComp(${i})">${preview}</button>
+                <button class="url-history-del" title="Remove" onclick="removeComp(${i})">X</button>
+            </div>`;
+        }).join('');
+    }
+
+    function autofillYourUrl(i) {
+        const arr = loadHistory(LS_YOUR);
+        if (arr[i]) document.getElementById('yourUrl').value = arr[i];
+        closeAllDropdowns();
+    }
+    function autofillComp(i) {
+        const arr = loadHistory(LS_COMP);
+        if (arr[i]) document.getElementById('competitorUrls').value = arr[i];
+        closeAllDropdowns();
+    }
+    function removeYourUrl(i) {
+        let arr = loadHistory(LS_YOUR);
+        arr.splice(i, 1);
+        saveHistory(LS_YOUR, arr);
+        renderYourUrlDrop();
+    }
+    function removeComp(i) {
+        let arr = loadHistory(LS_COMP);
+        arr.splice(i, 1);
+        saveHistory(LS_COMP, arr);
+        renderCompDrop();
+    }
+    function clearHistory(which) {
+        if (which === 'yourUrl') { saveHistory(LS_YOUR, []); renderYourUrlDrop(); }
+        else                     { saveHistory(LS_COMP, []); renderCompDrop(); }
+    }
+
+    function toggleDropdown(id) {
+        const el = document.getElementById(id);
+        const isOpen = el.classList.contains('open');
+        closeAllDropdowns();
+        if (!isOpen) {
+            if (id === 'yourUrlDrop') renderYourUrlDrop();
+            if (id === 'compUrlDrop') renderCompDrop();
+            el.classList.add('open');
+        }
+    }
+    function closeAllDropdowns() {
+        document.querySelectorAll('.url-history-dropdown, .comp-history-dropdown')
+            .forEach(el => el.classList.remove('open'));
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.url-input-wrap') && !e.target.closest('.comp-history-wrap')) {
+            closeAllDropdowns();
+        }
+    });
+
+    const _origAnalyzeUrls = analyzeUrls;
+    analyzeUrls = async function() {
+        const yourUrl = document.getElementById('yourUrl').value.trim();
+        const compRaw = document.getElementById('competitorUrls').value.trim();
+        pushYourUrl(yourUrl);
+        pushCompSet(compRaw);
+        await _origAnalyzeUrls();
+    };
+
+    renderYourUrlDrop();
+    renderCompDrop();
+</script>
+</body>
+</html>
